@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slaunchx-plutus-sdk"
+version = "0.1.0"
+description = "SlaunchX Plutus 商户 API Python SDK (协议 SLAUNCHX-PLUTUS-API-V1)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "SlaunchX Platform Team" }]
+keywords = ["slaunchx", "plutus", "merchant", "api", "sdk"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+    "Intended Audience :: Developers",
+]
+dependencies = [
+    "cryptography>=41",
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/slaunchx/slaunchx-plutus-sdk"
+Specification = "https://github.com/slaunchx/slaunchx-plutus-sdk/blob/main/SPEC.md"
+
+[tool.setuptools]
+packages = ["slaunchx_plutus_sdk"]
+
+[tool.setuptools.package-data]
+slaunchx_plutus_sdk = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

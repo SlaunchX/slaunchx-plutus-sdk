@@ -1,0 +1,28 @@
+# 五语言 SDK 的统一文件格式约定。
+# 协议实现对字节敏感,统一 UTF-8 与 LF 是硬要求;缩进宽度按各语言社区惯例。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{js,mjs,cjs,ts,mts,cts,json,jsonc,yml,yaml}]
+indent_size = 2
+
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[*.md]
+# Markdown 中行尾双空格是换行语义,不可裁剪
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+[*.{xml,pom}]
+indent_size = 2

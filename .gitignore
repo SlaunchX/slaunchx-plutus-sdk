@@ -1,0 +1,56 @@
+# 根级忽略规则:聚合五个语言 SDK 的构建产物与本地环境残留。
+# 各语言目录下另有自己的 .gitignore,本文件不替代它们,只保证在仓库根执行
+# git 命令时行为一致。
+
+# ---- 通用 ----
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# ---- 编辑器 / IDE ----
+.idea/
+*.iml
+.vscode/
+*.swp
+*~
+
+# ---- Java (Maven) ----
+java/target/
+*.class
+
+# ---- PHP (Composer) ----
+php/vendor/
+php/.phpunit.cache/
+php/.phpunit.result.cache
+
+# ---- Node.js / TypeScript ----
+node/node_modules/
+node/dist/
+node/coverage/
+node/.vitest/
+node/*.tgz
+
+# ---- Python ----
+python/.venv/
+python/build/
+python/dist/
+python/.pytest_cache/
+python/.mypy_cache/
+python/.ruff_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ---- Go ----
+go/*.test
+go/coverage.out
+
+# ---- 密钥材料 ----
+# shared/test-vectors.json 中的一次性测试密钥是有意入库的;
+# 除此之外任何真实密钥文件都不得进入仓库。
+*.pem
+*.key
+*.p12
+*.pfx
+!shared/**

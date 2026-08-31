@@ -1,0 +1,650 @@
+{
+  "meta" : {
+    "schemaVersion" : 1,
+    "protocol" : "SLAUNCHX-PLUTUS-API-V1",
+    "generatedAt" : "2026-08-31T02:13:16.470205626Z",
+    "generatedBy" : "slaunchx-plutus-backend real implementation classes (RsaSignatureCodec, ApiHybridEnvelopeCodec, ApiAccessRsaKeySupport, WorkspaceWebhookRequestSnapshotAssembler)",
+    "sourceRepository" : "slaunchx-plutus-backend",
+    "sourceCommit" : "855b8a3abc8a3c39c8ce4f0d195277e48036fa4e",
+    "sourceWorkTree" : "dirty (pre-existing unrelated modifications; none from this task)",
+    "javaVersion" : "21.0.11",
+    "warning" : "所有 RSA 私钥仅用于测试向量, 绝不可用于任何真实环境",
+    "counts" : {
+      "canonicalQuery" : 21,
+      "bodyHash" : 7,
+      "requestSignature" : 7,
+      "responseSignature" : 3,
+      "encryptedEnvelope" : 3,
+      "webhook" : 2
+    }
+  },
+  "keys" : {
+    "merchant_auth" : {
+      "purpose" : "商户认证密钥对: 私钥由商户持有并对请求签名; 公钥登记在平台 API Key 上用于验签",
+      "algorithm" : "RSA",
+      "modulusBits" : 2048,
+      "publicExponent" : 65537,
+      "fingerprint" : "SHA256:92121056c804351beebcc07f557efaa52be875b6fe30497d44c7096aa050961f",
+      "publicKeyPem" : "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsNDKzDM6vKeWxVEvNYzj\n9QRO0HpbCWjvchFlmbiRRPymorkB+8TRg8wWZ+BY5N8Zl5Gs+/HeLAgmcmkX8VhB\nQTjqorEYQBbzAHGOWuy7xf82M5pEg8cu+HnqfnIrEKhMrwYA/2rr7oEUWhCnEMrr\nk+av83r0P/SrEB7NK0VsW9v7cNlvpw9VMq9IksXTpAKaCsDILXaexn8pQB1FQWkV\n/fqWIH7YfeO34PqiP5CtI/4yWQuLmD5ktcg6xRvf7kOm61jc8haNXl5bCKHc8BTS\nRy4X3El/dSfbf9q/eOoK6cFoWis6nDZlKt017O75i9xMXjif6ymRQYrs1hFWsKoP\nRQIDAQAB\n-----END PUBLIC KEY-----",
+      "privateKeyPem" : "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCw0MrMMzq8p5bF\nUS81jOP1BE7QelsJaO9yEWWZuJFE/KaiuQH7xNGDzBZn4Fjk3xmXkaz78d4sCCZy\naRfxWEFBOOqisRhAFvMAcY5a7LvF/zYzmkSDxy74eep+cisQqEyvBgD/auvugRRa\nEKcQyuuT5q/zevQ/9KsQHs0rRWxb2/tw2W+nD1Uyr0iSxdOkApoKwMgtdp7GfylA\nHUVBaRX9+pYgfth947fg+qI/kK0j/jJZC4uYPmS1yDrFG9/uQ6brWNzyFo1eXlsI\nodzwFNJHLhfcSX91J9t/2r946grpwWhaKzqcNmUq3TXs7vmL3ExeOJ/rKZFBiuzW\nEVawqg9FAgMBAAECggEAKtWB84MLnS1KSKXYtnPZu38eKsIhcL+jljIht2IvixNb\nuPrxwJDXIsMbwHFoh5WGiSHo0qYu6OLWkYvlGXoEYO0NZnlZgxksKDTaRCuqd5ZS\nhqC+LWBhAB/kz1oQFbp3zUS6lCXOXxqVGBaFqntGI6/UezsTlbTLhh24HV31mLDj\nl8NIfvgsI3O8VU+AzexVLPakbnAY7cc4rd8k/YXYWekvERk7kDSf4Lmf2ThCM/oW\nWaBBHiGr13KNYTotVVLrqOhPOe+7UTVVp/dvxtDawDAM5sZKJ3Z+EQfJBLzXeEJZ\nGDlJbih/VPPeqS7ZHgd1z0/ZMMVWiyKYj3Q61QfbcQKBgQDyuTOiSmA2lt8pm/X2\nsDlnq9B2CWdN6a2MXDbD9uJiuL/nXTrDATMLLtr+817xlUJHFLVEUs+Ncy0wbq4z\nBFUMdQbZ8yuzT4QiPz8yPgNYHo71rj6r4A+2mCwLHckhdSwfe0Ut//09+onMvDaY\n4gQy8k8oHw/oybhpSO6ua6uGSQKBgQC6fLLZzElrvO00cv9EZFMLDf0kOaRXHOD8\n+4JsOMiq357Q4KfwqvjtTQXvLo5HvWTAwmmZgf/2IOg/QOrfcqWyZtdkHhQeRgUT\nI6YOFzskR3RtK2MBFvE2D6IYKn/bg6FU/LDDdFcvX2wQOQYwfEyiJP56ZDGZC6IM\ndIp4U8kRHQKBgAOpsdLIJo2MV0/Mb7jKTgN3f0zYtXtihGDy30yzxBTTTuoR6Roa\nQYfwrBNe3tbsdrSV5mpiiYlL7Kmnce+JKDNo7LKLTeSF1auiorSCZRCGXYftmjqD\nxhjuUPPV/jwIBaNv+8pG665swnmZeYVzG7cdGv6zAU11Bdho5lkxfMQpAoGBAJv9\nIJFj+uoevv+HTZTEol311pANkzS22E9khgTGPrwHj03DDVcXfF7qdZNLCwJhHrzK\nIhCgmB0mC36Va6F6wbUHpxV8v3FPOoF26TiSIAtJpc6HYyoPKbcBvqGeMxLH+RQg\nxi7HywG6PKcZO98kqelbLm3sDzyoaWUnuofJ9b7VAoGBAMmWZQec0H4Bl4+ekUqo\nQtZZ1x4hE64qvmyfR3rFkCgL37fUVwXfaiEczUpgM4gdBg/D+PUnNxCYT+N+Spih\n9E4cODUnApAGnaQjL9cq4xsFs6TxBqjHwsRDwzjgN6HnWWO/zZ7rhHURNUduKLmZ\nt+3DQKiCQ1UriajG9XOWHT9R\n-----END PRIVATE KEY-----"
+    },
+    "platform_auth" : {
+      "purpose" : "平台认证密钥对: 私钥在平台侧对响应与 Webhook 签名; 公钥交付商户用于验签",
+      "algorithm" : "RSA",
+      "modulusBits" : 2048,
+      "publicExponent" : 65537,
+      "fingerprint" : "SHA256:28c4b98719bcc7c229c5c237d7ee0f38a874a59645134bdcfe32634be64d8375",
+      "publicKeyPem" : "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwe0Q/UgHRNMQAnwQOimc\nxa8IvzrQcR9vt4PWaUGWRDoDxEfI61dZGvF/MRjtod8YMipQBf/DXxyXe6ppgftg\ngkCV2QdRb9wTo6Ds1AA9PY0wAcotjMCyVcnakNNmKqocU8yUKsq7LSTGHn6YRLcT\nc8cWdtPW5sG97Idm8ybNELhfRnHlsR3oIb9oRodBgMC9WMGoGPCHAfbmeePbTBhQ\naDM/ALg+r3FmJqNOZiqO3RqH0GsZwsuFjkIIBCXwUyrZMjUF0bJrTrR5N3SRUdO/\nicbjItgC/WvxrHet2Dgesg5KRqTMYbypN42Jk33d6aPlA9ods/mwlYs7PlUHWt0E\nNQIDAQAB\n-----END PUBLIC KEY-----",
+      "privateKeyPem" : "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDB7RD9SAdE0xAC\nfBA6KZzFrwi/OtBxH2+3g9ZpQZZEOgPER8jrV1ka8X8xGO2h3xgyKlAF/8NfHJd7\nqmmB+2CCQJXZB1Fv3BOjoOzUAD09jTAByi2MwLJVydqQ02YqqhxTzJQqyrstJMYe\nfphEtxNzxxZ209bmwb3sh2bzJs0QuF9GceWxHeghv2hGh0GAwL1YwagY8IcB9uZ5\n49tMGFBoMz8AuD6vcWYmo05mKo7dGofQaxnCy4WOQggEJfBTKtkyNQXRsmtOtHk3\ndJFR07+JxuMi2AL9a/Gsd63YOB6yDkpGpMxhvKk3jYmTfd3po+UD2h2z+bCVizs+\nVQda3QQ1AgMBAAECggEAPoddmIV+joMNoPd21gIv4g/nnp1ss2UDBSW131d+B767\nEzFgR/3wpb7jl6WljbGdICPDjMOkr8jM0VunzHkM68K+bm2tJQfNr0+GvW7cUDnz\nlkgl+sHxXrcIyfTX9v7FxoFq7wdSZiJ63T9Ngq6TT5wMksEIhHxI7HjWSaWjrnVs\n0f0ZL3iUcB2S4NuOxvXY3xMkE5Tci9HcT+Ikpo8XvVTLEX4xqz/VSkGyc1jxF8aA\n/cvf97ZoED3NyCOCqkrLcHmslRw3YVc9+ooZw4UARSDzaAPnVWaXhumuOLwRxfSS\nY01jkvLejqy43dzgrrhYGDPFwuOk/WD1d+ZZBn3n+wKBgQDbIH6DV0SDmOJIFOaf\nKdCehf/X6nS4O6V5Bo/u0Es7dw/lVw+Jsv39/iSW6pv5PUEQHhWeX9q7Qq6hn1H/\nc4a+PUFib7D0J9zvSY91j9Pso64f55pLNJd3z0EOACuR0XnKwdAKOzBTlcb3mNdJ\n93TOM1S+3eGUYPLsPOo8VDHImwKBgQDijvkqs58P225IfOcEt1OPKDBvnP/9HfAr\neKo0Ig8jocAoMHFrgv1ZdkoFjgPP8QjO6YL1AQmwPzuLZIDZYTOHBaHVZQM44Dfj\ndXyg2PclcK9s9SRk5g6xldHGTxJUMVNrmRCw3vzioJpsj+TMS8VtfOz5n28mK2BY\n1QsmKo8rbwKBgQCBdnFIqAaSuYD3lWGsJ8hZ4FGH/712G8dn+biQIABS4cVCem1z\nrYziw4RapcIBP29xVlTvfTJ98Ke8VaTciCTTwN0gi1zA48xkk9FuY8uRxCLcNrmy\nNSBIaOrGmtMjE+AhKuD/Knki6RrkriiESu935FvtaKoeQClF6bd6bUP8gQKBgG1p\noseOi4i67h2vxFmwt3fxbsLYTYBODwjPc1NOB4WrvgMqsfu7/OJRkBnypcCspRZY\nC1iLMcSeJQGCff99Q8c3XxqRd+bl0dfVi2Sao3C/ZNj34qWfvQTiV7avxShH0gOq\nnjbs2bAQ48L+Ev7esO/ZXxCGgMUsOZFtAb9i2lWdAoGAeyW6qXsY7i5vKdPPdmPq\nqwfp7nuQIi713DnuuAJYhXfgZsgbaT2pGX97mbihWx3z91ywZoiwvNPr7ae/501Z\nXLrFyxCNXOmjGF1AxqRsB0wZiFaEeM6Eq9IP3yTz4vywSCn8V8mDvP49q0/m+7Vh\nemxI8gDf1qnAlsehM5kCeTw=\n-----END PRIVATE KEY-----"
+    },
+    "merchant_enc" : {
+      "purpose" : "商户加密密钥对: 公钥登记在平台, 平台用它加密敏感响应与 Webhook; 私钥由商户持有解密",
+      "algorithm" : "RSA",
+      "modulusBits" : 2048,
+      "publicExponent" : 65537,
+      "fingerprint" : "SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6",
+      "publicKeyPem" : "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqPqvxanTGJpYTs3qzXx1\nPxNCu1PQ38hva9T2Uz29/P9aJ+0fyr2Ro8oMOhvVg0yxq47HYgu0UmPyG0wR1p9g\naZd2PIEJ/SwyQTcE5t7HHkBJ0dgzeIv8dZ5QeOcd6WiSZcFUsvtiCsJkuHwxhWaP\nuEhnSQhi/HuU5EK2vbWo5KeqhLVRExzkYlXDOootLZm0C3M7z4h8CSq4AE5R1B+i\n1lW/LdDBrQ4B5FkhaFGD1tWmWTql7bRZBsKIkSqjlRrpq4Geb2TqK+WheKztjYZN\n6XkJzvfH0ut++KE+wYQVekZxyFz+RzJwFrjT8UIsvseWjD1mDUm4hr3Es3XL+jzR\ntQIDAQAB\n-----END PUBLIC KEY-----",
+      "privateKeyPem" : "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCo+q/FqdMYmlhO\nzerNfHU/E0K7U9DfyG9r1PZTPb38/1on7R/KvZGjygw6G9WDTLGrjsdiC7RSY/Ib\nTBHWn2Bpl3Y8gQn9LDJBNwTm3sceQEnR2DN4i/x1nlB45x3paJJlwVSy+2IKwmS4\nfDGFZo+4SGdJCGL8e5TkQra9tajkp6qEtVETHORiVcM6ii0tmbQLczvPiHwJKrgA\nTlHUH6LWVb8t0MGtDgHkWSFoUYPW1aZZOqXttFkGwoiRKqOVGumrgZ5vZOor5aF4\nrO2Nhk3peQnO98fS6374oT7BhBV6RnHIXP5HMnAWuNPxQiy+x5aMPWYNSbiGvcSz\ndcv6PNG1AgMBAAECggEAJBXw7oHPSkw/uoh/8aT39uHamN2T2A5aOQlwFyOyzHIN\no0Qgy2+DSBqQVOJ3zMPWl1/01UvRlNyyKcEreA1uDe6h+dbGttG247VnrxP5Ks0o\n1o7YoxAl+Eo4PjGA8kT6Ko/IUjab39dWog0nmCjoXT7dC7wmQ2vyxnI2yzmdmUKZ\n5eLUo2UnlyiCn1cTWF/6SXScE3GEePIaKWBnLtSPBHVceUjLc+kwOO8tdyNptkCE\nMEEBiN3CBn6/gONzExI7+rdcR6zmKxLVIdU5EQtnd63sxbThxF1jmD1+4FVTMHKr\n1EjvooDZ8Eo5zLZp/H70Ug5BlkEJtM8wPRDGHRBtywKBgQDh0LZoiPZa3BXCiBiG\n+2uF0LI0gCum8MKX4orKd7O1P1P9aeXlOgwAtnjlJzKOsyngwG4ZXlgkugd9RPrr\ncGdAkZ2Nv+YJBypL9UCcFW+Kl3tnXtIqqAV4V0qus/NuDIOjwCs/lQfXU5x/f9hy\nuAkKINuniQ/UeETzlxHYV397UwKBgQC/kRKpr4PQwVuCFdrp95+DKJn8DPGzOFCn\nxrjYanvAyx8wdp8TINI0y7v0sR9hipylU1efuQg/c/YLL3N/3nAp5KWge/cFgfbJ\nf1G+DWBU38VX0Ks5sYDmzOzj2ZOgQOKU1cJxKLSP6Awq52h9BDGYyyVjc512PJGV\nMTAQd1nl1wKBgHwcbmT+AgjmNb95daGaxfoCPi/E0jkq0okQJiApskfHyq3ZalWW\nlco+gCvSY2My7a1tlhWzWNa2uC8NnquQV++RGPszoYcMvR6KaTxgO7H8mAK0huaS\n+o6ty4pBtWWi0ydJE3wauPiMJ9ObvKcwpyc97/wgxOaOQ7duLIyvao2pAoGAOqsM\nYylcnkdJZiqZU8RBduKtXhL8xt19XhSvMaBS7DWJBMefajVIC2FF2+eO68mOtdcz\nY7hAPWafOMe8gLG3+iyLSP4OJgKqeQVkHGduVC//+Sfv+IhTKNwjxJgy7QZSHjDl\nDtDfk58GcvFR/8+T/O5iMfYLiFV+ZIme5bwXrRsCgYA2NsBfmCI1qEnZpPZMfiRw\n0MH5Esaf9KuAgBlC9e3bcDR4kszHFd0NO8QtkuuUNltO+nyKVok2yoR/Mawz+rvg\nnL0ccRm2u0W5qTJv4FMTOk0swdd3a6FMCiIS8VEp6tDkMrmnBKP0FPjs/Ssc81eG\nCTH049OOz2cSyR9vv3e1tA==\n-----END PRIVATE KEY-----"
+    },
+    "platform_enc" : {
+      "purpose" : "平台加密密钥对: 公钥交付商户用于加密请求体; 私钥在平台侧解密 (本向量中随附仅供离线自检)",
+      "algorithm" : "RSA",
+      "modulusBits" : 2048,
+      "publicExponent" : 65537,
+      "fingerprint" : "SHA256:51523519898668c62dbef500403e6fa116ccd5318ec706b874b694720365faaa",
+      "publicKeyPem" : "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlDSrW8hdKdbPriTA8Lfg\nFSjh+I6bdiWdBFJXfFMBr4PKmxYu+D9tblvjxORnBedIHA04qbfazqUyFRF8FGh0\npmFE8xPB3R4uWFNADNehyoAwdtlQywpCq4AASrMRZjPnJKprqj6CFQEF9YCjpa4e\nKk9UP1LPcKZZm3OZPqBx7Ggc/gFXDi+GKPfpTAnegdKdglDFTvksbyycq0JWRRCu\nfpiva1so48VQ3u9AoGDQjc7cujg7YCvX9HIwBY8xn28AqYmVNtU50lIw7TZGOgyS\ntWt/b9Tc59vXv85kezsGrozi8Zml/9YB7zZHnvKKRMS2vxOguuns9BRY237hMeLJ\nhQIDAQAB\n-----END PUBLIC KEY-----",
+      "privateKeyPem" : "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCUNKtbyF0p1s+u\nJMDwt+AVKOH4jpt2JZ0EUld8UwGvg8qbFi74P21uW+PE5GcF50gcDTipt9rOpTIV\nEXwUaHSmYUTzE8HdHi5YU0AM16HKgDB22VDLCkKrgABKsxFmM+ckqmuqPoIVAQX1\ngKOlrh4qT1Q/Us9wplmbc5k+oHHsaBz+AVcOL4Yo9+lMCd6B0p2CUMVO+SxvLJyr\nQlZFEK5+mK9rWyjjxVDe70CgYNCNzty6ODtgK9f0cjAFjzGfbwCpiZU21TnSUjDt\nNkY6DJK1a39v1Nzn29e/zmR7OwaujOLxmaX/1gHvNkee8opExLa/E6C66ez0FFjb\nfuEx4smFAgMBAAECggEADSFaciv+9wM5TJokft8nivBfjswhoVbFQboC1riq7FAe\njd1qBWPnL9ETzaCXsQnz1UpllAG+MLMpi/zL06oKdagl+ews74hqPjiH8utSwfRX\n9tubgRWUYQna3MNfHgEosBKqLb/SegZobv754KabtQ9orSCK0NXoF/HmqIoB9doD\n++m+Ohkx+nfhqVadDanGcJSTPHVMbDbB+nw0X/6EDOEgIPENNAh+vc3PMS5T7e9b\nylS+qms4g0w6ODAn3Hvkt5jV9dcC4C07sYfix5cyPK3gabQ0ci7Nsue8bX1/2Pj5\n9uVW14gbZ1xkACTsKyFggB4uAROJ5v7rKN7ahLvisQKBgQDG9e9nxXiL5r1qjm05\ncK3BKF+IadkOI9wwg0kMF/Ciec/NphTDnPixVwGdEM5CwBzvsiWp8bTg4WZM+YEZ\nTRja815urEocJ7J+lMomHAgLOr+N18hYIRCuMeRx3ZS4K+5FfDBwTcbIqvv24Wwk\nrnC8oLe4Q1XIvxtTXEk4WyiZVQKBgQC+sb31VNfSUQyO497JArCcoABY0FXWNLAU\nRfJ74/ZCH0wd37imSL3XPK+Metww6lokmWHJpo1/k9iTbz3xJCEp7wVUV+gl76ok\nCv7/vrH9EBP7Zoe5BIJaKnWzHZpudHltdfiD4nNxrn6pYfEJqtmhoRy7bbCDujBW\nSndCi46vcQKBgQCXQJP10btor8tD3G7Qgga1lxm5PK6T/1L/Vm8L0I9RFUWS0zVp\n2EV/m+NQIlyLhjz5Q/c6ENQvOWtqDSvFrkS8/tLFVBkq+krJzBc5jYnX75t8G5Tk\n2o4xvyAqKAdNU6haDqVMWvRJzSKrdoeeAzcVTyEb5aSrbg05/Ch1vWdJ2QKBgHa4\n7k0pT1zvfOQRVojLFe3NZ6njuy0rjFxy1+7uFElCdv86ZBmSvC6e56SMcT47CXgz\nzj/fY8UD5RiVb3kMR2F2IFlMiYnk1oauGehbbzDgq7AfO2yjNAyy1qh3S8hs15Sg\nl+J0P++M9eq6wXiFWA1a4yqFthms958hqXJStLjhAoGAEtbyIHkzBAL3EOfDCB8w\nkqwX3PZrcE2MPwnN/Sa+f/6ebGPC11RpIiV++YYz+i2EarLBmRBaMm6vJmGU90lK\nc8HG4W4xvhlV+JHJjldzrKr9HxBy104GimQSzwoOlH77bQg/xig0nKrH8YE5Fv1S\nu1nvxN217cYMqAGUZA/vNcg=\n-----END PRIVATE KEY-----"
+    }
+  },
+  "vectors" : {
+    "canonicalQuery" : [ {
+      "id" : "cq-01-null",
+      "description" : "null query string",
+      "input" : null,
+      "expected" : "",
+      "expectError" : false
+    }, {
+      "id" : "cq-02-empty",
+      "description" : "empty query string",
+      "input" : "",
+      "expected" : "",
+      "expectError" : false
+    }, {
+      "id" : "cq-03-blank",
+      "description" : "whitespace-only query string is treated as empty",
+      "input" : "   ",
+      "expected" : "",
+      "expectError" : false
+    }, {
+      "id" : "cq-04-sort-by-key",
+      "description" : "sort by key",
+      "input" : "b=2&a=1",
+      "expected" : "a=1&b=2",
+      "expectError" : false
+    }, {
+      "id" : "cq-05-duplicate-key-sort-by-value",
+      "description" : "duplicate key sorted by value",
+      "input" : "a=2&a=1&a=10",
+      "expected" : "a=1&a=10&a=2",
+      "expectError" : false
+    }, {
+      "id" : "cq-06-empty-value",
+      "description" : "empty value keeps the '=' separator",
+      "input" : "a=&b=1",
+      "expected" : "a=&b=1",
+      "expectError" : false
+    }, {
+      "id" : "cq-07-no-equals",
+      "description" : "pair without '=' becomes key with empty value",
+      "input" : "flag&a=1",
+      "expected" : "a=1&flag=",
+      "expectError" : false
+    }, {
+      "id" : "cq-08-space-encoded",
+      "description" : "%20 stays %20",
+      "input" : "q=hello%20world",
+      "expected" : "q=hello%20world",
+      "expectError" : false
+    }, {
+      "id" : "cq-09-lowercase-hex",
+      "description" : "lowercase percent hex is re-encoded uppercase",
+      "input" : "q=%e4%b8%ad%e6%96%87",
+      "expected" : "q=%E4%B8%AD%E6%96%87",
+      "expectError" : false
+    }, {
+      "id" : "cq-10-unicode-uppercase-hex",
+      "description" : "already uppercase UTF-8 percent encoding",
+      "input" : "q=%E4%B8%AD%E6%96%87",
+      "expected" : "q=%E4%B8%AD%E6%96%87",
+      "expectError" : false
+    }, {
+      "id" : "cq-11-unreserved-over-encoded",
+      "description" : "%2D decodes to '-' which is unreserved, so it is emitted raw",
+      "input" : "x=a%2Db%2Ec%5Fd%7Ee",
+      "expected" : "x=a-b.c_d~e",
+      "expectError" : false
+    }, {
+      "id" : "cq-12-reserved-reencoded",
+      "description" : "reserved characters stay percent-encoded, uppercase",
+      "input" : "path=%2fa%2fb&op=%3d%26%2b",
+      "expected" : "op=%3D%26%2B&path=%2Fa%2Fb",
+      "expectError" : false
+    }, {
+      "id" : "cq-13-value-with-encoded-equals",
+      "description" : "'=' inside a value must be percent-encoded",
+      "input" : "expr=a%3Db",
+      "expected" : "expr=a%3Db",
+      "expectError" : false
+    }, {
+      "id" : "cq-14-plus-encoded",
+      "description" : "a literal space must be %20; %2B is a literal plus sign",
+      "input" : "sign=%2B1&gap=%20",
+      "expected" : "gap=%20&sign=%2B1",
+      "expectError" : false
+    }, {
+      "id" : "cq-15-key-sorted-before-value",
+      "description" : "key ordering dominates value ordering",
+      "input" : "b=1&a=zzz&A=1",
+      "expected" : "A=1&a=zzz&b=1",
+      "expectError" : false
+    }, {
+      "id" : "cq-16-raw-plus-rejected",
+      "description" : "a raw '+' is NOT a space and is rejected",
+      "input" : "q=a+b",
+      "expected" : null,
+      "expectError" : true,
+      "errorReason" : "query component must use RFC 3986 percent encoding for reserved characters"
+    }, {
+      "id" : "cq-17-raw-reserved-rejected",
+      "description" : "raw reserved character is rejected",
+      "input" : "q=a:b",
+      "expected" : null,
+      "expectError" : true,
+      "errorReason" : "query component must use RFC 3986 percent encoding for reserved characters"
+    }, {
+      "id" : "cq-18-invalid-percent-rejected",
+      "description" : "invalid percent escape is rejected",
+      "input" : "q=%zz",
+      "expected" : null,
+      "expectError" : true,
+      "errorReason" : "query component contains invalid percent encoding"
+    }, {
+      "id" : "cq-19-truncated-percent-rejected",
+      "description" : "truncated percent escape is rejected",
+      "input" : "q=%4",
+      "expected" : null,
+      "expectError" : true,
+      "errorReason" : "query component contains incomplete percent encoding"
+    }, {
+      "id" : "cq-20-invalid-utf8-rejected",
+      "description" : "percent-decoded bytes must be valid UTF-8",
+      "input" : "q=%FF",
+      "expected" : null,
+      "expectError" : true,
+      "errorReason" : "query component contains invalid UTF-8"
+    }, {
+      "id" : "cq-21-raw-non-ascii-rejected",
+      "description" : "raw non-ASCII is rejected; percent-encode it",
+      "input" : "q=中",
+      "expected" : null,
+      "expectError" : true,
+      "errorReason" : "query component must use RFC 3986 percent encoding for reserved characters"
+    } ],
+    "bodyHash" : [ {
+      "id" : "bh-01-null",
+      "description" : "null body",
+      "method" : null,
+      "body" : null,
+      "forcedEmptyBody" : false,
+      "expected" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }, {
+      "id" : "bh-02-empty",
+      "description" : "zero-length body",
+      "method" : null,
+      "body" : "",
+      "forcedEmptyBody" : false,
+      "expected" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }, {
+      "id" : "bh-03-json",
+      "description" : "compact JSON body",
+      "method" : null,
+      "body" : "{\"amount\":\"25.80\",\"currency\":\"USD\"}",
+      "forcedEmptyBody" : false,
+      "expected" : "ed4f04327f3e4d4709e499e86696d47487656794c092de46b4b13dfb0e8d1963"
+    }, {
+      "id" : "bh-04-unicode",
+      "description" : "UTF-8 body with non-ASCII characters",
+      "method" : null,
+      "body" : "{\"note\":\"中文测试\"}",
+      "forcedEmptyBody" : false,
+      "expected" : "229e86b961cf19620af2e5779a9e60fb348cbbc2395ced887e9118b64ce65a65"
+    }, {
+      "id" : "bh-05-whitespace-significant",
+      "description" : "byte-exact hashing: an extra space changes the digest",
+      "method" : null,
+      "body" : "{\"amount\": \"25.80\",\"currency\":\"USD\"}",
+      "forcedEmptyBody" : false,
+      "expected" : "91482db467b9ceb697bc9540fb26da024b1dac93e6dd6e9579f23a629ac84618"
+    }, {
+      "id" : "bh-06-get-forced-empty",
+      "description" : "GET/HEAD/DELETE always sign the empty-body digest even if a body is present",
+      "method" : "GET",
+      "body" : "{\"ignored\":true}",
+      "forcedEmptyBody" : true,
+      "expected" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }, {
+      "id" : "bh-07-delete-forced-empty",
+      "description" : "DELETE always signs the empty-body digest",
+      "method" : "DELETE",
+      "body" : "{\"ignored\":true}",
+      "forcedEmptyBody" : true,
+      "expected" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    } ],
+    "requestSignature" : [ {
+      "id" : "rq-01-get-no-query",
+      "description" : "GET, no query, no body, no idempotency key",
+      "signingKey" : "merchant_auth",
+      "request" : {
+        "method" : "GET",
+        "externalPath" : "/card-products/cards/page",
+        "queryString" : null,
+        "timestamp" : "1755600000000",
+        "nonce" : "nonce-vector-0000000001",
+        "apiVersion" : "1",
+        "idempotencyKey" : null,
+        "body" : null
+      },
+      "canonicalQuery" : "",
+      "forcedEmptyBody" : true,
+      "bodyHash" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalString" : "GET\n/card-products/cards/page\n\n1755600000000\nnonce-vector-0000000001\n1\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalStringLines" : [ "GET", "/card-products/cards/page", "", "1755600000000", "nonce-vector-0000000001", "1", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ],
+      "requestCanonicalSha256" : "b2a6d90ef5b5e489c4c6d0a54db6ce1ed9351bbe0848e2cf1a03ce59fdb84b6d",
+      "signature" : "sIU/DQ0xnhzvVBHlIw4D8nU2a68LrEN7g05B+T9xzIcdQg6107nPF+4+ZScl9Z5Me1U8nytjsik4VjgTfwiy+6Pvf3VGO0krSPIL5fUNT9hHXzqj3XWVK3OiPzobGMJSff4hzsgIGGopwgBzhLcABkgLIX+BZlJvQCioZLI/389kWk715Nr3Oe/s1uWBvV3WMFoQz3vv4gfSl06srMGpQUrLCE/g9CmrGY8ZFPz+kMBWRW9juvUI5bsfgsfwXGmXFKdQ9sgHYpcaJpa+aBrYBrMO7Qf3qxHG6k0mrsyMgvqa55X3UClzPKr7Vwf5VOcKt4Hqr+N+U85rbQUU4L4UZw==",
+      "headers" : {
+        "X-Api-Key" : "apk_vector_0001",
+        "X-API-VERSION" : "1",
+        "X-Timestamp" : "1755600000000",
+        "X-Nonce" : "nonce-vector-0000000001",
+        "X-Signature-Algorithm" : "RSA-SHA256",
+        "X-Signature" : "sIU/DQ0xnhzvVBHlIw4D8nU2a68LrEN7g05B+T9xzIcdQg6107nPF+4+ZScl9Z5Me1U8nytjsik4VjgTfwiy+6Pvf3VGO0krSPIL5fUNT9hHXzqj3XWVK3OiPzobGMJSff4hzsgIGGopwgBzhLcABkgLIX+BZlJvQCioZLI/389kWk715Nr3Oe/s1uWBvV3WMFoQz3vv4gfSl06srMGpQUrLCE/g9CmrGY8ZFPz+kMBWRW9juvUI5bsfgsfwXGmXFKdQ9sgHYpcaJpa+aBrYBrMO7Qf3qxHG6k0mrsyMgvqa55X3UClzPKr7Vwf5VOcKt4Hqr+N+U85rbQUU4L4UZw=="
+      }
+    }, {
+      "id" : "rq-02-get-with-query",
+      "description" : "GET with a query string that must be canonicalized",
+      "signingKey" : "merchant_auth",
+      "request" : {
+        "method" : "GET",
+        "externalPath" : "/card-products/cards/page",
+        "queryString" : "pageSize=20&status=IN_USE&cursor=",
+        "timestamp" : "1755600001000",
+        "nonce" : "nonce-vector-0000000002",
+        "apiVersion" : "1",
+        "idempotencyKey" : null,
+        "body" : null
+      },
+      "canonicalQuery" : "cursor=&pageSize=20&status=IN_USE",
+      "forcedEmptyBody" : true,
+      "bodyHash" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalString" : "GET\n/card-products/cards/page\ncursor=&pageSize=20&status=IN_USE\n1755600001000\nnonce-vector-0000000002\n1\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalStringLines" : [ "GET", "/card-products/cards/page", "cursor=&pageSize=20&status=IN_USE", "1755600001000", "nonce-vector-0000000002", "1", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ],
+      "requestCanonicalSha256" : "66fdef5fa0d55270541574892c1a90a53014af3294c7abf4006af6a0d03dd576",
+      "signature" : "a7pzz4lxCKP+zPHBRmve08I4x6+KvAoIY1muz/o6BbuNg691SCQBnwOJlxKaeEaPSdLojzvKcTxxnMLhb/GtBid3YXj6qw7oP0mMmjfkvpKiD47eHDvh3JpAUfh44Xl4p7YufngrTMxWSkJdzwWb4Z/pwsvWuKCUdsoED88q6EnO3yHVGXM7JhaiCRj6gYnhT4OG8SnA4UjDhu/+eSNB6gwLz1IovV32Ms1O7AS/+WCiTmI3AqkYAyB4qPylSAPU0VazdEpCLX6GxprktwI8NWeWyX0F66q0VMr6fG5eu6Ni873vzqgAMNZn2dblzVvU5yCgG/+dy5JsnAzkNF3VBg==",
+      "headers" : {
+        "X-Api-Key" : "apk_vector_0001",
+        "X-API-VERSION" : "1",
+        "X-Timestamp" : "1755600001000",
+        "X-Nonce" : "nonce-vector-0000000002",
+        "X-Signature-Algorithm" : "RSA-SHA256",
+        "X-Signature" : "a7pzz4lxCKP+zPHBRmve08I4x6+KvAoIY1muz/o6BbuNg691SCQBnwOJlxKaeEaPSdLojzvKcTxxnMLhb/GtBid3YXj6qw7oP0mMmjfkvpKiD47eHDvh3JpAUfh44Xl4p7YufngrTMxWSkJdzwWb4Z/pwsvWuKCUdsoED88q6EnO3yHVGXM7JhaiCRj6gYnhT4OG8SnA4UjDhu/+eSNB6gwLz1IovV32Ms1O7AS/+WCiTmI3AqkYAyB4qPylSAPU0VazdEpCLX6GxprktwI8NWeWyX0F66q0VMr6fG5eu6Ni873vzqgAMNZn2dblzVvU5yCgG/+dy5JsnAzkNF3VBg=="
+      }
+    }, {
+      "id" : "rq-03-post-body",
+      "description" : "POST with a JSON body, no idempotency key",
+      "signingKey" : "merchant_auth",
+      "request" : {
+        "method" : "POST",
+        "externalPath" : "/card-products/cards/freeze",
+        "queryString" : null,
+        "timestamp" : "1755600002000",
+        "nonce" : "nonce-vector-0000000003",
+        "apiVersion" : "1",
+        "idempotencyKey" : null,
+        "body" : "{\"reasonCategory\":\"USER_REQUESTED\"}"
+      },
+      "canonicalQuery" : "",
+      "forcedEmptyBody" : false,
+      "bodyHash" : "f745aa47e934634c521c78d28e9d7d6b2fbffab82a661cfcbc5118f54a8938e0",
+      "canonicalString" : "POST\n/card-products/cards/freeze\n\n1755600002000\nnonce-vector-0000000003\n1\n\nf745aa47e934634c521c78d28e9d7d6b2fbffab82a661cfcbc5118f54a8938e0",
+      "canonicalStringLines" : [ "POST", "/card-products/cards/freeze", "", "1755600002000", "nonce-vector-0000000003", "1", "", "f745aa47e934634c521c78d28e9d7d6b2fbffab82a661cfcbc5118f54a8938e0" ],
+      "requestCanonicalSha256" : "f51f2fc0531833fbe4793c6a2a2f608ef9d94224fab71bfc3213995a46570caa",
+      "signature" : "blJtmEt0MmVrjuW/PgeFy2TQot7Vply0JEnvk3R6n8N/EWDgnxoYGNmkL2vz13oWYObBR6C2+MjtOlT5CWRX+9whFEHZFfkqkMco+/CgUMF/VxM09t8MEvhkoe3Np7216HuI6T5Eubn885QOziUwPATLEerkqCZY3fj7x1tP/8hGWlp+YujpTTbDgbnsqp8K1zuSI5SX1Gudfmz0ctGmr6ai/jhDvAVafduJnG6lcXrazOQzMPiSf8z+LH1MDk+iTKs6V9ZOYQUCD+JwK4uuy4GmETCWLqJSLIeZ4KRRXlmBbzzQvZN+s+DuLjW4TWGXQLumdG9sfwOXQoY40CFdHA==",
+      "headers" : {
+        "X-Api-Key" : "apk_vector_0001",
+        "X-API-VERSION" : "1",
+        "X-Timestamp" : "1755600002000",
+        "X-Nonce" : "nonce-vector-0000000003",
+        "X-Signature-Algorithm" : "RSA-SHA256",
+        "X-Signature" : "blJtmEt0MmVrjuW/PgeFy2TQot7Vply0JEnvk3R6n8N/EWDgnxoYGNmkL2vz13oWYObBR6C2+MjtOlT5CWRX+9whFEHZFfkqkMco+/CgUMF/VxM09t8MEvhkoe3Np7216HuI6T5Eubn885QOziUwPATLEerkqCZY3fj7x1tP/8hGWlp+YujpTTbDgbnsqp8K1zuSI5SX1Gudfmz0ctGmr6ai/jhDvAVafduJnG6lcXrazOQzMPiSf8z+LH1MDk+iTKs6V9ZOYQUCD+JwK4uuy4GmETCWLqJSLIeZ4KRRXlmBbzzQvZN+s+DuLjW4TWGXQLumdG9sfwOXQoY40CFdHA=="
+      }
+    }, {
+      "id" : "rq-04-post-body-idempotency",
+      "description" : "POST with a JSON body and an idempotency key",
+      "signingKey" : "merchant_auth",
+      "request" : {
+        "method" : "POST",
+        "externalPath" : "/card-products/10010106/shared/cards/create",
+        "queryString" : null,
+        "timestamp" : "1755600003000",
+        "nonce" : "nonce-vector-0000000004",
+        "apiVersion" : "1",
+        "idempotencyKey" : "idem-vector-0000000004",
+        "body" : "{\"platformCardProductBizId\":\"pcp_example_001\",\"quantity\":2}"
+      },
+      "canonicalQuery" : "",
+      "forcedEmptyBody" : false,
+      "bodyHash" : "43c52cbad4f2a14f62838bc0c3090a377ce1bc5a7cfe3fe279e9c0cd39a11ddd",
+      "canonicalString" : "POST\n/card-products/10010106/shared/cards/create\n\n1755600003000\nnonce-vector-0000000004\n1\nidem-vector-0000000004\n43c52cbad4f2a14f62838bc0c3090a377ce1bc5a7cfe3fe279e9c0cd39a11ddd",
+      "canonicalStringLines" : [ "POST", "/card-products/10010106/shared/cards/create", "", "1755600003000", "nonce-vector-0000000004", "1", "idem-vector-0000000004", "43c52cbad4f2a14f62838bc0c3090a377ce1bc5a7cfe3fe279e9c0cd39a11ddd" ],
+      "requestCanonicalSha256" : "fe1c6d70b3a04be5cf2b12438f2666f81a1c0b0d641774dfb7f573ed7d6c50f4",
+      "signature" : "JTJdRXAO+QLZRclfetbLgiYjT4qfaEKsLThtmZAS3HmrotdWqq92DpvzOH4IdovKNNfa4BkNOGL3glB0WJbTpXtN7v1gCsAZ4T0BT2PxrlR7EF5ygTRidQSKLYPTCQjWZTCEE4Il07hrMskvqc2PCzPJanqxSjo94Zedcw4Z0bvJ29qRGI8WBuxB7yiiTo5l0dOky57A3tseR8Hj0n5xTAHrirr1KZzJXtpGHBL1rViIKWUXFqfrMP2F9Y8nlCP/p5I5BiGPc3gTAQ81t2FT8zhn+3DgwGpnDe49K/6zTSu4Szkm4eGfFsoD8Dxjpm0C9V+eaT2O/6zYmpkhDV1TCA==",
+      "headers" : {
+        "X-Api-Key" : "apk_vector_0001",
+        "X-API-VERSION" : "1",
+        "X-Timestamp" : "1755600003000",
+        "X-Nonce" : "nonce-vector-0000000004",
+        "X-Signature-Algorithm" : "RSA-SHA256",
+        "X-Signature" : "JTJdRXAO+QLZRclfetbLgiYjT4qfaEKsLThtmZAS3HmrotdWqq92DpvzOH4IdovKNNfa4BkNOGL3glB0WJbTpXtN7v1gCsAZ4T0BT2PxrlR7EF5ygTRidQSKLYPTCQjWZTCEE4Il07hrMskvqc2PCzPJanqxSjo94Zedcw4Z0bvJ29qRGI8WBuxB7yiiTo5l0dOky57A3tseR8Hj0n5xTAHrirr1KZzJXtpGHBL1rViIKWUXFqfrMP2F9Y8nlCP/p5I5BiGPc3gTAQ81t2FT8zhn+3DgwGpnDe49K/6zTSu4Szkm4eGfFsoD8Dxjpm0C9V+eaT2O/6zYmpkhDV1TCA==",
+        "X-Idempotency-Key" : "idem-vector-0000000004"
+      }
+    }, {
+      "id" : "rq-05-delete-query-idempotency",
+      "description" : "DELETE with a query string and an idempotency key; body digest is forced empty",
+      "signingKey" : "merchant_auth",
+      "request" : {
+        "method" : "DELETE",
+        "externalPath" : "/card-products/cards/cancel",
+        "queryString" : "reason=CLOSED_BY_MERCHANT",
+        "timestamp" : "1755600004000",
+        "nonce" : "nonce-vector-0000000005",
+        "apiVersion" : "1",
+        "idempotencyKey" : "idem-vector-0000000005",
+        "body" : null
+      },
+      "canonicalQuery" : "reason=CLOSED_BY_MERCHANT",
+      "forcedEmptyBody" : true,
+      "bodyHash" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalString" : "DELETE\n/card-products/cards/cancel\nreason=CLOSED_BY_MERCHANT\n1755600004000\nnonce-vector-0000000005\n1\nidem-vector-0000000005\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalStringLines" : [ "DELETE", "/card-products/cards/cancel", "reason=CLOSED_BY_MERCHANT", "1755600004000", "nonce-vector-0000000005", "1", "idem-vector-0000000005", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ],
+      "requestCanonicalSha256" : "cfdd7b0f650b988ac7ce62ff0b447ac3b791cb210eef77b942abf987eee6a6d2",
+      "signature" : "YVVZ9Zy07oG0RqR6TmmsEpeHGyOMUgcR7O7Bh/P9OZaKfV3t/iMmMKokSg5mzPrcdQHp7/L2L8vZ+7W/FR/7txwPYqNEGTgdnxRiUbivhj5UkdJ4mtPiTAKmGVNeb/3Vh+zwWMn4LKLdLWTaqwz4k1WaGYCaNNTNYTq5sRpWcpJffXTGImitWciQwvF31y/YXPPjFP6Q17KEJp5z/c8DpSNQk+6Nc+0VnG6OhhkKZ65wkHtgPTgSZYpJq2pp43ZtKUCR2Wd7QqUdQeJOcsFCXSELYfqrq8LNmOB0Yggxfu5Sq4dJKpA2VpkZ8j7TIdNnE87wTZI9QTq/RtNixnXSIA==",
+      "headers" : {
+        "X-Api-Key" : "apk_vector_0001",
+        "X-API-VERSION" : "1",
+        "X-Timestamp" : "1755600004000",
+        "X-Nonce" : "nonce-vector-0000000005",
+        "X-Signature-Algorithm" : "RSA-SHA256",
+        "X-Signature" : "YVVZ9Zy07oG0RqR6TmmsEpeHGyOMUgcR7O7Bh/P9OZaKfV3t/iMmMKokSg5mzPrcdQHp7/L2L8vZ+7W/FR/7txwPYqNEGTgdnxRiUbivhj5UkdJ4mtPiTAKmGVNeb/3Vh+zwWMn4LKLdLWTaqwz4k1WaGYCaNNTNYTq5sRpWcpJffXTGImitWciQwvF31y/YXPPjFP6Q17KEJp5z/c8DpSNQk+6Nc+0VnG6OhhkKZ65wkHtgPTgSZYpJq2pp43ZtKUCR2Wd7QqUdQeJOcsFCXSELYfqrq8LNmOB0Yggxfu5Sq4dJKpA2VpkZ8j7TIdNnE87wTZI9QTq/RtNixnXSIA==",
+        "X-Idempotency-Key" : "idem-vector-0000000005"
+      }
+    }, {
+      "id" : "rq-06-unicode-query-and-body",
+      "description" : "POST with non-ASCII query and body, exercising UTF-8 handling end to end",
+      "signingKey" : "merchant_auth",
+      "request" : {
+        "method" : "POST",
+        "externalPath" : "/card-products/cards/remark/update",
+        "queryString" : "tag=%E4%B8%AD%E6%96%87&b=2&a=1",
+        "timestamp" : "1755600005000",
+        "nonce" : "nonce-vector-0000000006",
+        "apiVersion" : "1",
+        "idempotencyKey" : null,
+        "body" : "{\"note\":\"中文测试\"}"
+      },
+      "canonicalQuery" : "a=1&b=2&tag=%E4%B8%AD%E6%96%87",
+      "forcedEmptyBody" : false,
+      "bodyHash" : "229e86b961cf19620af2e5779a9e60fb348cbbc2395ced887e9118b64ce65a65",
+      "canonicalString" : "POST\n/card-products/cards/remark/update\na=1&b=2&tag=%E4%B8%AD%E6%96%87\n1755600005000\nnonce-vector-0000000006\n1\n\n229e86b961cf19620af2e5779a9e60fb348cbbc2395ced887e9118b64ce65a65",
+      "canonicalStringLines" : [ "POST", "/card-products/cards/remark/update", "a=1&b=2&tag=%E4%B8%AD%E6%96%87", "1755600005000", "nonce-vector-0000000006", "1", "", "229e86b961cf19620af2e5779a9e60fb348cbbc2395ced887e9118b64ce65a65" ],
+      "requestCanonicalSha256" : "53b525ca3c4d0dfa9686f5b6871319a560cddafa8983306206e0c76ee9d18361",
+      "signature" : "hLQwdoQEbyblcgaKR6pDoZgYrD6hTNvEQ9he16HQZh5tcr8f7xoAlKhypv8wvWJhRp3qzhYfpwVExieyPfjqTc/T+dXKO3Sr216BeUuQqMWb0NguugrQW7h3MQCv9jPtgBRtrPLwtYA6nRknvy+QsQTm4P1Pyam7T18Ha4T9CdnhNuJDCuJ3a4cfG6T+KZX8cSBph6wJtu53yKcU4OVLaAxYwFkL5/2cwhV0CrOleONwXmZCmNnItMBMfqqKzSuFg55GkoDBFgqHaq3kJ3VhitFw+AFLeaMw8qkxzrxc+VVD4sihxtgy5Fwaz6hWTLqfQWcDrZBG5L9jUeLy+ProaA==",
+      "headers" : {
+        "X-Api-Key" : "apk_vector_0001",
+        "X-API-VERSION" : "1",
+        "X-Timestamp" : "1755600005000",
+        "X-Nonce" : "nonce-vector-0000000006",
+        "X-Signature-Algorithm" : "RSA-SHA256",
+        "X-Signature" : "hLQwdoQEbyblcgaKR6pDoZgYrD6hTNvEQ9he16HQZh5tcr8f7xoAlKhypv8wvWJhRp3qzhYfpwVExieyPfjqTc/T+dXKO3Sr216BeUuQqMWb0NguugrQW7h3MQCv9jPtgBRtrPLwtYA6nRknvy+QsQTm4P1Pyam7T18Ha4T9CdnhNuJDCuJ3a4cfG6T+KZX8cSBph6wJtu53yKcU4OVLaAxYwFkL5/2cwhV0CrOleONwXmZCmNnItMBMfqqKzSuFg55GkoDBFgqHaq3kJ3VhitFw+AFLeaMw8qkxzrxc+VVD4sihxtgy5Fwaz6hWTLqfQWcDrZBG5L9jUeLy+ProaA=="
+      }
+    }, {
+      "id" : "rq-07-post-empty-body",
+      "description" : "POST with an explicitly empty body (empty-body digest, not a GET)",
+      "signingKey" : "merchant_auth",
+      "request" : {
+        "method" : "POST",
+        "externalPath" : "/card-products/cards/unfreeze",
+        "queryString" : null,
+        "timestamp" : "1755600006000",
+        "nonce" : "nonce-vector-0000000007",
+        "apiVersion" : "1",
+        "idempotencyKey" : null,
+        "body" : ""
+      },
+      "canonicalQuery" : "",
+      "forcedEmptyBody" : false,
+      "bodyHash" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalString" : "POST\n/card-products/cards/unfreeze\n\n1755600006000\nnonce-vector-0000000007\n1\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonicalStringLines" : [ "POST", "/card-products/cards/unfreeze", "", "1755600006000", "nonce-vector-0000000007", "1", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ],
+      "requestCanonicalSha256" : "076d89cbbdd42032067575919971e17e127ac79f6ae7d8b5f2906436a39eb121",
+      "signature" : "KGIyscmESsHRFPcIDNzab6YbPE2RadG9mtayrWAGMx9HqOxO6qAmFaACF89ucKDIoMhCJ2PUIWJpmaH1Pw5KtNRJbcHhuKWM7uX2mQw9S653dODnkXhU1AYWt0htJm6XC5oozj0fis4Ajlbk6BU/TnLI9S7owJ0iY+XxzcB57kFP8q4oKfbI3RICKQTKpT+gwn2FgmHmcY9ZpsiI6bP/ytm2B1xHgDozJNMytxeOIc9hFZm14gKt5pT+jsu9n7Nc6YNWbbrfPs754BifK8TI20JSlSqVTEZmU1mFCw881W0FN5zIcT1LEOzYk6Ljem/Im/vTU9NGa1BiJ58Vra9WGw==",
+      "headers" : {
+        "X-Api-Key" : "apk_vector_0001",
+        "X-API-VERSION" : "1",
+        "X-Timestamp" : "1755600006000",
+        "X-Nonce" : "nonce-vector-0000000007",
+        "X-Signature-Algorithm" : "RSA-SHA256",
+        "X-Signature" : "KGIyscmESsHRFPcIDNzab6YbPE2RadG9mtayrWAGMx9HqOxO6qAmFaACF89ucKDIoMhCJ2PUIWJpmaH1Pw5KtNRJbcHhuKWM7uX2mQw9S653dODnkXhU1AYWt0htJm6XC5oozj0fis4Ajlbk6BU/TnLI9S7owJ0iY+XxzcB57kFP8q4oKfbI3RICKQTKpT+gwn2FgmHmcY9ZpsiI6bP/ytm2B1xHgDozJNMytxeOIc9hFZm14gKt5pT+jsu9n7Nc6YNWbbrfPs754BifK8TI20JSlSqVTEZmU1mFCw881W0FN5zIcT1LEOzYk6Ljem/Im/vTU9NGa1BiJ58Vra9WGw=="
+      }
+    } ],
+    "responseSignature" : [ {
+      "id" : "rp-01-get-200",
+      "description" : "200 JSON response bound to request vector rq-01-get-no-query",
+      "signingKey" : "platform_auth",
+      "requestVectorId" : "rq-01-get-no-query",
+      "requestCanonicalSha256" : "b2a6d90ef5b5e489c4c6d0a54db6ce1ed9351bbe0848e2cf1a03ce59fdb84b6d",
+      "apiVersion" : "1",
+      "externalPath" : "/card-products/cards/page",
+      "operationId" : null,
+      "requestId" : "req_vector_0000000001",
+      "httpStatus" : 200,
+      "contentType" : "application/json",
+      "responseTimestamp" : "1755600000123",
+      "responseBody" : "{\"code\":0,\"data\":{\"cardBizId\":\"card_example_001\",\"status\":\"IN_USE\"}}",
+      "responseBodyHash" : "f8f885892b562fa52ab094f3b6ba0083cde24621ff3b22b7f7bee86abc05a12a",
+      "canonicalString" : "SLAUNCHX-API-RESPONSE-V1\nb2a6d90ef5b5e489c4c6d0a54db6ce1ed9351bbe0848e2cf1a03ce59fdb84b6d\n1\n/card-products/cards/page\n\nreq_vector_0000000001\n200\napplication/json\n1755600000123\nf8f885892b562fa52ab094f3b6ba0083cde24621ff3b22b7f7bee86abc05a12a",
+      "canonicalStringLines" : [ "SLAUNCHX-API-RESPONSE-V1", "b2a6d90ef5b5e489c4c6d0a54db6ce1ed9351bbe0848e2cf1a03ce59fdb84b6d", "1", "/card-products/cards/page", "", "req_vector_0000000001", "200", "application/json", "1755600000123", "f8f885892b562fa52ab094f3b6ba0083cde24621ff3b22b7f7bee86abc05a12a" ],
+      "signature" : "O2uCuEqINWyDAq8QlzIHU0Rg+fECuGCk6zkU7ah1TJQnTlCZ+wDPHEgaeKLI7fLQR42XxSR7GAh1eCPRQIlq0M3kMAXQYQ3h29bjNPchSi3qY0JJGlQ40k/W7l1wBacrVkThyo2OxaO7qTmDf3AxONysJ8coyEv+8tpb0ARHPJXoyqI7mLYE6AFpK/OWEDCEnTfgTh1lOs4IxTF7jy+mmlcb2vO/NBU58mSpziKNZsj7buMkALMyYLIRmCV3FI3SNR/66x5kOCVE0V+37Jfk81/jxDeUejWM8WAMU8pCNTKEz6tW00A3diGoK5hZ5TXHAogtdzj7ezcsZTpB/6GV/Q==",
+      "headers" : {
+        "X-Request-Id" : "req_vector_0000000001",
+        "X-Response-Timestamp" : "1755600000123",
+        "X-Response-Signature-Algorithm" : "RSA-SHA256",
+        "X-Response-Signature" : "O2uCuEqINWyDAq8QlzIHU0Rg+fECuGCk6zkU7ah1TJQnTlCZ+wDPHEgaeKLI7fLQR42XxSR7GAh1eCPRQIlq0M3kMAXQYQ3h29bjNPchSi3qY0JJGlQ40k/W7l1wBacrVkThyo2OxaO7qTmDf3AxONysJ8coyEv+8tpb0ARHPJXoyqI7mLYE6AFpK/OWEDCEnTfgTh1lOs4IxTF7jy+mmlcb2vO/NBU58mSpziKNZsj7buMkALMyYLIRmCV3FI3SNR/66x5kOCVE0V+37Jfk81/jxDeUejWM8WAMU8pCNTKEz6tW00A3diGoK5hZ5TXHAogtdzj7ezcsZTpB/6GV/Q==",
+        "X-Platform-Signing-Key-Id" : "<platform_auth fingerprint>"
+      }
+    }, {
+      "id" : "rp-02-post-201-operation-id",
+      "description" : "201 response with an operation id (idempotent write) bound to rq-04",
+      "signingKey" : "platform_auth",
+      "requestVectorId" : "rq-04-post-body-idempotency",
+      "requestCanonicalSha256" : "fe1c6d70b3a04be5cf2b12438f2666f81a1c0b0d641774dfb7f573ed7d6c50f4",
+      "apiVersion" : "1",
+      "externalPath" : "/card-products/10010106/shared/cards/create",
+      "operationId" : "op_vector_0000000004",
+      "requestId" : "req_vector_0000000004",
+      "httpStatus" : 201,
+      "contentType" : "application/json;charset=UTF-8",
+      "responseTimestamp" : "1755600003456",
+      "responseBody" : "{\"code\":0,\"data\":{\"batchBizId\":\"ccb_example_001\"}}",
+      "responseBodyHash" : "ec06b0bea9aa4163cdd17d9a170fbb3a22c8e6ebd7b5cdfbcdc9d8f66c453040",
+      "canonicalString" : "SLAUNCHX-API-RESPONSE-V1\nfe1c6d70b3a04be5cf2b12438f2666f81a1c0b0d641774dfb7f573ed7d6c50f4\n1\n/card-products/10010106/shared/cards/create\nop_vector_0000000004\nreq_vector_0000000004\n201\napplication/json;charset=UTF-8\n1755600003456\nec06b0bea9aa4163cdd17d9a170fbb3a22c8e6ebd7b5cdfbcdc9d8f66c453040",
+      "canonicalStringLines" : [ "SLAUNCHX-API-RESPONSE-V1", "fe1c6d70b3a04be5cf2b12438f2666f81a1c0b0d641774dfb7f573ed7d6c50f4", "1", "/card-products/10010106/shared/cards/create", "op_vector_0000000004", "req_vector_0000000004", "201", "application/json;charset=UTF-8", "1755600003456", "ec06b0bea9aa4163cdd17d9a170fbb3a22c8e6ebd7b5cdfbcdc9d8f66c453040" ],
+      "signature" : "qaHqVr725coDQeHQOmaxQecoFoSp4VshCfMxjeZ48LQvp6LL2D1LGnWVW1xkaKafTsSYSAjIAhHxSCEcKsRgb9dPv1suZEmU4NnLeKEu/tjrA9YRypeF1lrMxBTg48GaIfalosFqmdQGIAwgmkIVuzrETZxC9FTMb7MIpZIpN2yfyOyNLsblu97g94ng6/nqHWh6J42WfkG+Fh/w2ijK8CTNhHXiuhRldsp+sYLTDXodbAOZdbUCD52AwI798JkFGderYNcZsf6XvtdJ1UVUZLiPjQKmuLuB7Jw03fcUaB8V6UodUaro41GcRaaptdHSRZ6KK1SOUxosmgM7nOXdaQ==",
+      "headers" : {
+        "X-Request-Id" : "req_vector_0000000004",
+        "X-Operation-Id" : "op_vector_0000000004",
+        "X-Response-Timestamp" : "1755600003456",
+        "X-Response-Signature-Algorithm" : "RSA-SHA256",
+        "X-Response-Signature" : "qaHqVr725coDQeHQOmaxQecoFoSp4VshCfMxjeZ48LQvp6LL2D1LGnWVW1xkaKafTsSYSAjIAhHxSCEcKsRgb9dPv1suZEmU4NnLeKEu/tjrA9YRypeF1lrMxBTg48GaIfalosFqmdQGIAwgmkIVuzrETZxC9FTMb7MIpZIpN2yfyOyNLsblu97g94ng6/nqHWh6J42WfkG+Fh/w2ijK8CTNhHXiuhRldsp+sYLTDXodbAOZdbUCD52AwI798JkFGderYNcZsf6XvtdJ1UVUZLiPjQKmuLuB7Jw03fcUaB8V6UodUaro41GcRaaptdHSRZ6KK1SOUxosmgM7nOXdaQ==",
+        "X-Platform-Signing-Key-Id" : "<platform_auth fingerprint>"
+      }
+    }, {
+      "id" : "rp-03-error-401",
+      "description" : "401 error response is signed the same way",
+      "signingKey" : "platform_auth",
+      "requestVectorId" : "rq-02-get-with-query",
+      "requestCanonicalSha256" : "66fdef5fa0d55270541574892c1a90a53014af3294c7abf4006af6a0d03dd576",
+      "apiVersion" : "1",
+      "externalPath" : "/card-products/cards/page",
+      "operationId" : null,
+      "requestId" : "req_vector_0000000002",
+      "httpStatus" : 401,
+      "contentType" : "application/json",
+      "responseTimestamp" : "1755600001999",
+      "responseBody" : "{\"code\":\"API.SIGNATURE_INVALID\",\"message\":\"signature is invalid\"}",
+      "responseBodyHash" : "91ae396e257840fa17ca3830893ab5b91110127dd698027534ed5ecdb2a3f41e",
+      "canonicalString" : "SLAUNCHX-API-RESPONSE-V1\n66fdef5fa0d55270541574892c1a90a53014af3294c7abf4006af6a0d03dd576\n1\n/card-products/cards/page\n\nreq_vector_0000000002\n401\napplication/json\n1755600001999\n91ae396e257840fa17ca3830893ab5b91110127dd698027534ed5ecdb2a3f41e",
+      "canonicalStringLines" : [ "SLAUNCHX-API-RESPONSE-V1", "66fdef5fa0d55270541574892c1a90a53014af3294c7abf4006af6a0d03dd576", "1", "/card-products/cards/page", "", "req_vector_0000000002", "401", "application/json", "1755600001999", "91ae396e257840fa17ca3830893ab5b91110127dd698027534ed5ecdb2a3f41e" ],
+      "signature" : "gJVtioYI7SW8iJfDrc1MwOR/s9ug9BcKc/ofGGmlqGDIi+5828X2WInzC4/WYAG1fF4IEYXOW/WaXbdaNCUwkUEPz1p/cnlbtCx6kNPHNR1DbC8h8mUxXhwBtPUPVKf8v3py2JRwHgITu6WOqjeImfCvXrxU9azzz4AeBaYEYXJR6hj+dfhw4u691Vi41F9R/J9YaLqsziD+WgR/2buAz82MpB+Gizhz9LdfNgNpgcAzDVMe96yGcmb60T9cTNCliuriYKxVcWxKLH3/re/dprsIbQILy9eCAI1cjBM3xexLkSAghHZDAGf0zKpTqn3pPSidBilRBNBJsSgGMjF3xA==",
+      "headers" : {
+        "X-Request-Id" : "req_vector_0000000002",
+        "X-Response-Timestamp" : "1755600001999",
+        "X-Response-Signature-Algorithm" : "RSA-SHA256",
+        "X-Response-Signature" : "gJVtioYI7SW8iJfDrc1MwOR/s9ug9BcKc/ofGGmlqGDIi+5828X2WInzC4/WYAG1fF4IEYXOW/WaXbdaNCUwkUEPz1p/cnlbtCx6kNPHNR1DbC8h8mUxXhwBtPUPVKf8v3py2JRwHgITu6WOqjeImfCvXrxU9azzz4AeBaYEYXJR6hj+dfhw4u691Vi41F9R/J9YaLqsziD+WgR/2buAz82MpB+Gizhz9LdfNgNpgcAzDVMe96yGcmb60T9cTNCliuriYKxVcWxKLH3/re/dprsIbQILy9eCAI1cjBM3xexLkSAghHZDAGf0zKpTqn3pPSidBilRBNBJsSgGMjF3xA==",
+        "X-Platform-Signing-Key-Id" : "<platform_auth fingerprint>"
+      }
+    } ],
+    "encryptedEnvelope" : [ {
+      "id" : "en-01-encrypted-request",
+      "description" : "商户加密请求体: 用平台加密公钥封装, 平台用平台加密私钥解开. routeTemplate 为外部路径.",
+      "direction" : "request",
+      "decryptionKey" : "platform_enc",
+      "aadComponents" : {
+        "requestId" : "req_vector_0000000010",
+        "routeTemplate" : "/card-products/10010106/shared/cards/create",
+        "timestamp" : "1755600010000",
+        "keyId" : "SHA256:51523519898668c62dbef500403e6fa116ccd5318ec706b874b694720365faaa"
+      },
+      "aadString" : "req_vector_0000000010|/card-products/10010106/shared/cards/create|1755600010000|SHA256:51523519898668c62dbef500403e6fa116ccd5318ec706b874b694720365faaa",
+      "aadBase64" : "cmVxX3ZlY3Rvcl8wMDAwMDAwMDEwfC9jYXJkLXByb2R1Y3RzLzEwMDEwMTA2L3NoYXJlZC9jYXJkcy9jcmVhdGV8MTc1NTYwMDAxMDAwMHxTSEEyNTY6NTE1MjM1MTk4OTg2NjhjNjJkYmVmNTAwNDAzZTZmYTExNmNjZDUzMThlYzcwNmI4NzRiNjk0NzIwMzY1ZmFhYQ==",
+      "envelope" : {
+        "algorithm" : "RSA-OAEP-AES-256-GCM",
+        "keyFingerprint" : "SHA256:51523519898668c62dbef500403e6fa116ccd5318ec706b874b694720365faaa",
+        "encryptedKey" : "JHvET4sQgoRgeLyDaqJ7wJsMYz3wRK5PPxordQUrqg9cqow0iu3qCfrUa4iy0vJp2Dk2DnZ0ddNRBDJxHMwngJyy1AMwTbD/3QPe6cpkUVFMUvTvwTWZ4Ki3LpjGnwupRuruuzGbGpmsmHOJNLww9vlPEjiFOsW/bojoQ4ZjJ+c771y+fVbiieuD0IO95CIMrUSoT7uZ70IQYc9k6XXo1ron9ogud5IdJKKh86KA8f8ilOdCeqhbG/8IBRjK9Tx/NJNtB93qwzCt86TNWYaJQkZrAADjOVqkEpu0VIm/yUoaO5D3UxoAwrttQWfHlQ7RgE8qTygfC0WiSDdcPrXIPg==",
+        "ciphertext" : "CmRTv/gd1qrfW8fSL/KDQYuMbGT7zGOs5vJZLXWzMlIvkBtWQDG5hAn9wW6rfLpEiP61ksyjzUaQSzepYRetrLiwHpoatj98864hn755285XIaLab9Yp",
+        "aad" : "cmVxX3ZlY3Rvcl8wMDAwMDAwMDEwfC9jYXJkLXByb2R1Y3RzLzEwMDEwMTA2L3NoYXJlZC9jYXJkcy9jcmVhdGV8MTc1NTYwMDAxMDAwMHxTSEEyNTY6NTE1MjM1MTk4OTg2NjhjNjJkYmVmNTAwNDAzZTZmYTExNmNjZDUzMThlYzcwNmI4NzRiNjk0NzIwMzY1ZmFhYQ==",
+        "encryptedPayload" : "CmRTv/gd1qrfW8fSL/KDQYuMbGT7zGOs5vJZLXWzMlIvkBtWQDG5hAn9wW6rfLpEiP61ksyjzUaQSzepYRetrLiwHpoatj98864hn755285XIaLab9Yp"
+      },
+      "expectedPlaintext" : "{\"platformCardProductBizId\":\"pcp_example_001\",\"quantity\":2}",
+      "requestHeaders" : {
+        "X-Request-Id" : "req_vector_0000000010",
+        "X-Timestamp" : "1755600010000",
+        "X-Platform-Encryption-Key-Id" : "SHA256:51523519898668c62dbef500403e6fa116ccd5318ec706b874b694720365faaa"
+      }
+    }, {
+      "id" : "en-02-sensitive-response",
+      "description" : "平台加密敏感响应: 用商户加密公钥封装, 商户用商户加密私钥解开. routeTemplate 固定为空串.",
+      "direction" : "sensitive_response",
+      "decryptionKey" : "merchant_enc",
+      "aadComponents" : {
+        "requestId" : "req_vector_0000000011",
+        "routeTemplate" : "",
+        "timestamp" : "1755600011000",
+        "keyId" : "SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6"
+      },
+      "aadString" : "req_vector_0000000011||1755600011000|SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6",
+      "aadBase64" : "cmVxX3ZlY3Rvcl8wMDAwMDAwMDExfHwxNzU1NjAwMDExMDAwfFNIQTI1NjpiMjMxNDdmMjEzZTUxMGU3ZjI2YTlhMjg5Mzk5YmE5MWVhYjZkY2EwMWZhMTcyYjAxOTZmZGNiYzczODA5NWM2",
+      "envelope" : {
+        "algorithm" : "RSA-OAEP-AES-256-GCM",
+        "keyFingerprint" : "SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6",
+        "encryptedKey" : "QiqrERJ1mzNVr2Le4XDgO/EhIFgB9TLzgcYoEpt2Ffzhhtj1WiT19Lz40ivLUIcvXcAOKp7x7CXog5GJ5DelGi/58BQvPc4hKFGeuVCHY0n9pacsuSnqp72X95gSHwDd7gEfjOJL1B6vC/Sz5ofC3VdZxTRHzKj7qdnOko3yb/DEgV4wDLf8hZRwQBhJEnn3HMRFuZ5qYHZ8PxQYljQ1kqdkez/klcb/tbbboyMHiSriZHOiy50YNtNb2NRBrdAoHAf1QY/UsMtk5uMjLwh30vBMUPP3YR7ZZXbeqDu0c+a+LwsNg03NSuBuz4elPjgN7n98ziVMBwpGPG+QkuWLBg==",
+        "ciphertext" : "XbM0bGyBjaP9zwBs/qXxNXnudnPUVkLB6uqh+vCcLNJq05VCsQExbLJT97Xx7bUqtSHALNd/5e2puc99mJtfvwy/RGgJig8NjJmuGFTY6grJFUdasKoWwg92t+ABiLtJQ20O4/moXdMQAfVj2RM2Qg==",
+        "aad" : "cmVxX3ZlY3Rvcl8wMDAwMDAwMDExfHwxNzU1NjAwMDExMDAwfFNIQTI1NjpiMjMxNDdmMjEzZTUxMGU3ZjI2YTlhMjg5Mzk5YmE5MWVhYjZkY2EwMWZhMTcyYjAxOTZmZGNiYzczODA5NWM2",
+        "encryptedPayload" : "XbM0bGyBjaP9zwBs/qXxNXnudnPUVkLB6uqh+vCcLNJq05VCsQExbLJT97Xx7bUqtSHALNd/5e2puc99mJtfvwy/RGgJig8NjJmuGFTY6grJFUdasKoWwg92t+ABiLtJQ20O4/moXdMQAfVj2RM2Qg=="
+      },
+      "expectedPlaintext" : "{\"cardNumber\":\"4111111111111111\",\"expiryMonth\":\"12\",\"expiryYear\":\"2030\",\"cvv\":\"123\"}"
+    }, {
+      "id" : "en-03-sensitive-response-empty-request-id",
+      "description" : "无 AccessContext 时 requestId 退化为空串, AAD 仍必须逐字节一致",
+      "direction" : "sensitive_response",
+      "decryptionKey" : "merchant_enc",
+      "aadComponents" : {
+        "requestId" : "",
+        "routeTemplate" : "",
+        "timestamp" : "1755600012000",
+        "keyId" : "SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6"
+      },
+      "aadString" : "||1755600012000|SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6",
+      "aadBase64" : "fHwxNzU1NjAwMDEyMDAwfFNIQTI1NjpiMjMxNDdmMjEzZTUxMGU3ZjI2YTlhMjg5Mzk5YmE5MWVhYjZkY2EwMWZhMTcyYjAxOTZmZGNiYzczODA5NWM2",
+      "envelope" : {
+        "algorithm" : "RSA-OAEP-AES-256-GCM",
+        "keyFingerprint" : "SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6",
+        "encryptedKey" : "nWFJsE+yRoJr1iJWtibgSwosXW/PXno/XuAHK02pQ1jjUThgYvb165cgiyT1GJtTLPrtydLdvkGLVCOi5uziibCSV8toEdTzXmf7lSR5j0SoFFN9hJy2WbqcYdUayNPYL1laNaYdWv68sMZsBPtU7NLokRqjHXQFL1r+HpxFHi1nO7nJwkmiqdr+mgVAm3qLv9btW6BexutYgtwjQ4EUsRR95PT6Ia7+L3FWXYPI0CzQBhTwFmWZktj6Q6gbvoLa++nysiNOANI33m3NSo5NC4J/0phJXqr8SrfVhGbD6aGbwr25fFdS9XuxrcOd/Rpyxs1TBXIWWzVT2/Rt1gyy+g==",
+        "ciphertext" : "Jqbnrrkll1uuh3YLpsbFIzdXgLVxqfqIUYPa1TnrO/l3SmYsmVVpNFqtlX8Pd9cF6cs8NrRiRWutQuzAhw==",
+        "aad" : "fHwxNzU1NjAwMDEyMDAwfFNIQTI1NjpiMjMxNDdmMjEzZTUxMGU3ZjI2YTlhMjg5Mzk5YmE5MWVhYjZkY2EwMWZhMTcyYjAxOTZmZGNiYzczODA5NWM2",
+        "encryptedPayload" : "Jqbnrrkll1uuh3YLpsbFIzdXgLVxqfqIUYPa1TnrO/l3SmYsmVVpNFqtlX8Pd9cF6cs8NrRiRWutQuzAhw=="
+      },
+      "expectedPlaintext" : "{\"cardNumber\":\"4000000000000002\"}"
+    } ],
+    "webhook" : [ {
+      "id" : "wh-01-card-issuance",
+      "description" : "官方样例 whevt_card_001 (card.issuance) 的完整通知投递",
+      "decryptionKey" : "merchant_enc",
+      "signatureVerificationKey" : "platform_auth",
+      "headers" : {
+        "X-SlaunchX-Signature" : "bvqXscKYvGNV8mKEy8C0OaePb0tI+6LV4pFWyXY5vWme+IRY+bU/yv3TCF9Cxt+IDQ/r2V6K6U/PNIUIFxGW9u4oG9pVNBCart3sm9CXn3twthG2IDSQDFYO+5TdzEKrd+X7JhbYUVaAy9AW3ZBe/57P6w+jbIgLYvur8ACvPeO9CX8QMs5BFSaimKaH3GydYIqGSn5EpVbpwgOrs212Cyp1Bnf4bNfDHRyTBMu8RQ4BjEVsj6uGCKAQVgUSfQba2aAW2p5qnhD5xbI0kB4K0kssQ1R9tEGKJ1uWIfSbc7S3kUG/GhWUjBxYwZ7LwWEGecY7ALvnrnEtm+6d/GCZ4Q==",
+        "X-SlaunchX-Event-Type" : "card.issuance",
+        "Content-Type" : "application/json; charset=utf-8",
+        "X-SlaunchX-Timestamp" : "1788142396408",
+        "X-SlaunchX-Delivery-Id" : "whd_example_001",
+        "X-SlaunchX-Key-Id" : "apk_vector_0001"
+      },
+      "body" : "{\"envelopeVersion\":1,\"algorithm\":\"RSA-OAEP-AES-256-GCM\",\"keyFingerprint\":\"SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6\",\"encryptedKey\":\"TXvE7Wcm1SrnvKFvapP0WAdkZVVuJO9PpTxkTZ1GOnEtYCKbw8gF96q4gCa/rnTVJYud4ln/g3kEQXbWvi0BvJNMRkuBhFIoaUZu0fdPxve1zENgL40MhfxPHfet5lKwVqLdugbqi8Wb7715eKN0d7DzwhU7jFXQMQHAdmS9C03R3OnLpOue/9PBrclqS9T+gMhIcr86Tjh2H1s/KNBhrK+J0Gvj5FujjfLNoV8XTmnrAA3IrZOSXHaidxqziZC2QZYnOD+wdvx7G/EgPBDPZ4n1jHPKvzNiehzc84hiqvKzWoVeOWoYrSU+7N0gL9xWOxGwu8so6yrfS7irxFJOeg==\",\"ciphertext\":\"wkG8vIOUPtPPzvN6Er015RZ+R/Yf6uuMwmVRdlHgu5D6+CrI2kOfvrBkVAB/R64+o+7zx9dWsYllqflvhCwxT1cHDiZ3PeFCWAAMH48V7yDzON7CmuoykrOiSgJJi57+1ypzNkCiAVYeX/BtiUo6miwQrdBN5ew5OjC+CBXx50V4GTwpxfQ3pO5bc9oLGCNxZN2EuqOIJgtHW+rqZvUAdeaWy54Re7cjItHWATICBFWc52/E/hZIWFVrtGJsEKNCLbK3ZWzQrCboKi74MIPpf74RF+Xyk25tBcBJgwd9ReCPHTbJcYtDcjNq9POPQIP8LAZwyYbF102vheUqKpWqv1JCeAYdewEfkE/twsSAu2RpzCrlFwQQFTAicfz69O1ppyr3Np1QKKo25vfd6MA4uxEOxtrq77By8WESU70b8gAsVPbDA8XYI3+w/N56VoLiV3M1VgwyDlgY3xEv4vSa6Hpr3H5M1vcm960ByLX+DDfX+8nnvysAqfEwx6TiXASmOfvOwEHiXQbJc7twU7uTgED5Uyr6tiWURXnwk7jOcgfbNkm1e+4GTFiCoxJsFfxpai4wShLzssaFk4jpRlGDLy+9/xlaqQH2Dz6fhzAvceg=\",\"aad\":\"d2hkX2V4YW1wbGVfMDAxfHdlYmhvb2t8MTc4ODE0MjM5NjQwOHxhcGtfdmVjdG9yXzAwMDE=\"}",
+      "bodyDigestBase64" : "Fxq4H2wtrPbpDJiQS1EPX5sPZKa6EH0NXph9Os+AN8k=",
+      "signatureCanonicalString" : "whd_example_001\ncard.issuance\n1788142396408\nFxq4H2wtrPbpDJiQS1EPX5sPZKa6EH0NXph9Os+AN8k=",
+      "aadComponents" : {
+        "requestId" : "whd_example_001",
+        "routeTemplate" : "webhook",
+        "timestamp" : "1788142396408",
+        "keyId" : "apk_vector_0001"
+      },
+      "aadString" : "whd_example_001|webhook|1788142396408|apk_vector_0001",
+      "aadBase64" : "d2hkX2V4YW1wbGVfMDAxfHdlYmhvb2t8MTc4ODE0MjM5NjQwOHxhcGtfdmVjdG9yXzAwMDE=",
+      "expectedPlaintext" : "{\"eventId\":\"whevt_card_001\",\"eventType\":\"card.issuance\",\"payloadSchemaVersion\":1,\"occurredAt\":\"2026-08-09T20:00:00Z\",\"workspaceBizId\":\"wks_example_001\",\"deliveryBizId\":\"whd_example_001\",\"resource\":{\"type\":\"card_information\",\"bizId\":\"card_example_001\"},\"data\":{\"batchBizId\":\"ccb_example_001\",\"cardBizId\":\"card_example_001\",\"userCardProductGroupBizId\":\"ucpg_example_001\",\"platformCardProductBizId\":\"pcp_example_001\",\"status\":\"SUCCEEDED\"}}"
+    }, {
+      "id" : "wh-02-card-status",
+      "description" : "官方样例 whevt_card_003 (card.status) 的完整通知投递",
+      "decryptionKey" : "merchant_enc",
+      "signatureVerificationKey" : "platform_auth",
+      "headers" : {
+        "X-SlaunchX-Signature" : "HeB28JKEP6feRNIksPW8KbcUadv58ALtrZ5B9k2wPOPisMpXMx2gYr5BEQAtaj/YyHc6g28SmHbBLm11JAWWCEoAr5wKU4kVJJo5rC7E8j82Ty0OdINwibQEp2vvble5ufrc+xd3ALWEqdpo4PF9694WQlwgdfdhRvi8p7XIqP9MgmwGQL+bnW0lTc1R4DaZsJrjDxLwPyKm6cOzO/uKLE4q3Egi0JcoeW4Vq9GNWPPwpAPRDinOuF0WfoYOQPIJb6HkP5O2OFWlPss7xizK51A7ITj5t2thk6Aw2PftSaKsm/XvM5hB4NcoK+jZwvVVhEFciOQwcUaXEcyHB/AJwQ==",
+        "X-SlaunchX-Event-Type" : "card.status",
+        "Content-Type" : "application/json; charset=utf-8",
+        "X-SlaunchX-Timestamp" : "1788142396459",
+        "X-SlaunchX-Delivery-Id" : "whd_example_003",
+        "X-SlaunchX-Key-Id" : "apk_vector_0001"
+      },
+      "body" : "{\"envelopeVersion\":1,\"algorithm\":\"RSA-OAEP-AES-256-GCM\",\"keyFingerprint\":\"SHA256:b23147f213e510e7f26a9a289399ba91eab6dca01fa172b0196fdcbc738095c6\",\"encryptedKey\":\"JiCv7kaAkhi3/drOMZNfI+1Nd1VqeYyvI9P0Q3wGorj1a7DcvhSCnR8t6DgOT2ULlP7tTpfhKIO+u+VYQELBwxfmErd/GkhsamErMS9kvjdQ+T5ax66sM36lWFtTCqQDyto8lZwhWb+Pyt+u9pue8JOrd9yd2neJE7M0vm8z1GTbt7DS6Rn452eNHh4gODygSUAWt71s5yDD8uJlbXrn31hAyg77GjFwvKGVmHcVKxJaL6ZcEI6SBI76tqFboK4OuhwjSakMXwf9yDq/hy2QSGMcNswoujG0+6QvWx2UhM08XcclHi/roPDdTzxf+thTRrdEk+iItJU6TekymaAA2A==\",\"ciphertext\":\"01Li3m/cNuimpkaxl0o28xQLygQxcqFPeikRT6EInXp/qJ8nM2SxC44y6S3pDPkK0mQuHx1tYp0mISgtwC86wQBcbnHlTToWLR/RlIIWIq/z0QJJKTR+GhyVjx3rx3drifVx392LTx4YLNN3daHU06um1VuExVhTMb3Oh7OcuqGjOIwjwX7chwDV9cfFm2r9fSSngnMzOY9wtZ0DMvZMZfPX2ApfZITkvrgxfg6BGPwm6Xx9vKtBvXXrhVIIq7Fsd3VNAhTEMlFiuCH+zI9A6iLBDd44ofpFtppaYSU2VsnpPwrfbl9BsFR3JdAEd8fQihvE4WRUoVZabGD5C6suSb7zJ9pK8ZPAC4mtkciCvM9iiUQpRNkQ8K93vOnEJHy/DnBFWaMLEImhFu3+gdLkxgjiqxFOHZOvqkhGM3eyVLH/rUNFESPZuK+Aotm6/vMZnVM2sE7sqAmiI5br6E2vaenxraGg9RuHlHmXdn7ixAfW7777Ga9cz4+Gh4OwnxkdtkhIDw==\",\"aad\":\"d2hkX2V4YW1wbGVfMDAzfHdlYmhvb2t8MTc4ODE0MjM5NjQ1OXxhcGtfdmVjdG9yXzAwMDE=\"}",
+      "bodyDigestBase64" : "mHRzDB26mZ3yITIg909ocQicbgcFXGX2lmgoxwdiGZ4=",
+      "signatureCanonicalString" : "whd_example_003\ncard.status\n1788142396459\nmHRzDB26mZ3yITIg909ocQicbgcFXGX2lmgoxwdiGZ4=",
+      "aadComponents" : {
+        "requestId" : "whd_example_003",
+        "routeTemplate" : "webhook",
+        "timestamp" : "1788142396459",
+        "keyId" : "apk_vector_0001"
+      },
+      "aadString" : "whd_example_003|webhook|1788142396459|apk_vector_0001",
+      "aadBase64" : "d2hkX2V4YW1wbGVfMDAzfHdlYmhvb2t8MTc4ODE0MjM5NjQ1OXxhcGtfdmVjdG9yXzAwMDE=",
+      "expectedPlaintext" : "{\"eventId\":\"whevt_card_003\",\"eventType\":\"card.status\",\"payloadSchemaVersion\":1,\"occurredAt\":\"2026-08-09T20:00:02Z\",\"workspaceBizId\":\"wks_example_001\",\"deliveryBizId\":\"whd_example_003\",\"resource\":{\"type\":\"card_information\",\"bizId\":\"card_example_001\"},\"data\":{\"previousStatus\":\"IN_USE\",\"currentStatus\":\"FROZEN\",\"reasonCategory\":\"USER_REQUESTED\",\"cardVersion\":8}}"
+    } ]
+  }
+}
