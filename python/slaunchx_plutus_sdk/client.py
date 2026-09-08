@@ -38,6 +38,7 @@ from .signer import (
     encode_query,
 )
 from .verifier import ResponseVerifier
+from .protocol import ProtocolProfile, product_request_id
 from .webhook import WebhookReceiver
 
 __all__ = [
@@ -237,11 +238,11 @@ class PlutusClient:
         self._owns_session = session is None
         self._session = session or requests.Session()
         self._signer = RequestSigner(
-            config.require_merchant_auth_private(), config.api_key, config.api_version
+            config.require_merchant_auth_private(), config.api_key, config.api_version, config.protocol_profile
         )
         self._verifier: Optional[ResponseVerifier] = None
         if config.verify_response_signature and config.platform_auth_public_key is not None:
-            self._verifier = ResponseVerifier(config.require_platform_auth_public())
+            self._verifier = ResponseVerifier(config.require_platform_auth_public(), config.protocol_profile)
 
     # -- 生命周期 -----------------------------------------------------------
 
@@ -303,11 +304,18 @@ class PlutusClient:
             raise ConfigurationError("json_body 与 body 不能同时提供")
 
         raw_query = encode_query(query)
-        canonical_query = canonicalize_query(raw_query)
+        canonical_query = canonicalize_query(raw_query, self.config.protocol_profile)
         ts = timestamp or current_timestamp_ms()
         extra_headers: Dict[str, str] = dict(self.config.default_headers)
         if headers:
             extra_headers.update(headers)
+
+        if self.config.protocol_profile == ProtocolProfile.PRODUCT_V1:
+            ids = [v for k, v in extra_headers.items() if k.lower() == "x-request-id"]
+            if len(ids) > 1 or (ids and request_id is not None):
+                raise ConfigurationError("X-Request-Id must not be specified more than once")
+            request_id = product_request_id(ids[0] if ids else request_id)
+            extra_headers = {k: v for k, v in extra_headers.items() if k.lower() != "x-request-id"}
 
         payload_bytes: Optional[bytes]
         if encrypt:
@@ -443,6 +451,7 @@ class PlutusClient:
         verified = False
         if self._verifier is not None:
             verified = self._verifier.verify(
+                sent_request_id=signed.headers.get("X-Request-Id"),
                 request_canonical_sha256=signed.canonical_sha256,
                 api_version=self.config.api_version,
                 external_path=path,

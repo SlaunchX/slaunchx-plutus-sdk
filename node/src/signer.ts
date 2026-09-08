@@ -1,3 +1,4 @@
+import { ProtocolProfile, resolveProfile, productRequestId } from './protocol.js';
 /**
  * 请求签名器:构造 8 行规范串、生成 RSA-SHA256(PKCS#1 v1.5)签名与全部签名头。
  */
@@ -18,7 +19,7 @@ import { loadPrivateKey, loadPublicKey, type KeyInput } from './keys.js';
 /** `X-Signature-Algorithm` 的字面量取值。 */
 export const SIGNATURE_ALGORITHM = 'RSA-SHA256';
 
-/** 默认 API 契约主版本。 */
+/** 兼容保留的版本常量；不会作为配置默认值。 */
 export const DEFAULT_API_VERSION = '1';
 
 /** query 入参:原始串或参数对象。对象会按 RFC 3986 编码。 */
@@ -96,12 +97,13 @@ export interface SignedRequest {
 
 /** {@link RequestSigner} 构造选项。 */
 export interface RequestSignerOptions {
+  protocolProfile?: ProtocolProfile;
   /** API Key 业务 ID,写入 `X-Api-Key` */
   apiKey: string;
   /** 商户认证私钥(`merchant_auth`,PKCS#8 PEM) */
   merchantAuthPrivateKey: KeyInput;
-  /** API 契约主版本,默认 `1` */
-  apiVersion?: string;
+  /** API 契约主版本,必填；当前 product 填 `1` */
+  apiVersion: string;
   /** nonce 生成器,默认 {@link generateNonce} */
   nonceGenerator?: () => string;
   /** 毫秒时钟,默认 `Date.now` */
@@ -117,12 +119,13 @@ export interface RequestSignerOptions {
  * 摘要计算与网络发送;否则两次序列化的差异会导致 `API.SIGNATURE_INVALID`。
  *
  * @example
- * const signer = new RequestSigner({ apiKey, merchantAuthPrivateKey: pem });
+ * const signer = new RequestSigner({ apiVersion: '1', apiKey, merchantAuthPrivateKey: pem });
  * const body = Buffer.from(JSON.stringify({ quantity: 2 }), 'utf8');
  * const signed = signer.sign({ method: 'POST', path: '/card-products/cards/freeze', body });
  * await fetch(url, { method: 'POST', headers: signed.headers, body });
  */
 export class RequestSigner {
+  private readonly protocolProfile: ProtocolProfile;
   private readonly apiKey: string;
   private readonly privateKey: KeyObject;
   private readonly apiVersion: string;
@@ -133,12 +136,16 @@ export class RequestSigner {
     if (!options.apiKey) {
       throw new PlutusRequestError('apiKey is required');
     }
+    if (typeof options.apiVersion !== 'string' || !options.apiVersion.trim()) {
+      throw new PlutusRequestError('apiVersion is required');
+    }
+    this.protocolProfile = resolveProfile(options.protocolProfile);
     this.apiKey = options.apiKey;
     this.privateKey = loadPrivateKey(options.merchantAuthPrivateKey, {
       strict: options.strictKeyValidation !== false,
       label: 'merchant_auth',
     });
-    this.apiVersion = options.apiVersion ?? DEFAULT_API_VERSION;
+    this.apiVersion = options.apiVersion;
     this.nonceGenerator = options.nonceGenerator ?? (() => generateNonce());
     this.now = options.now ?? (() => Date.now());
   }
@@ -156,7 +163,7 @@ export class RequestSigner {
     const rawQuery = typeof request.query === 'string' || request.query == null
       ? request.query ?? ''
       : encodeQueryParams(request.query);
-    const canonicalQuery = canonicalizeQuery(rawQuery);
+    const canonicalQuery = canonicalizeQuery(rawQuery, this.protocolProfile);
     const timestamp = request.timestamp ?? String(this.now());
     if (!/^\d+$/.test(timestamp)) {
       throw new PlutusRequestError('timestamp must be a Unix milliseconds decimal string');
@@ -170,6 +177,7 @@ export class RequestSigner {
     const bodyDigest = signedBodyDigest(method, request.body);
 
     const canonicalString = buildRequestCanonicalString({
+      protocolProfile: this.protocolProfile,
       method,
       externalPath: request.path,
       canonicalQuery,
@@ -192,9 +200,8 @@ export class RequestSigner {
     if (idempotencyKey !== null && idempotencyKey !== '') {
       headers['X-Idempotency-Key'] = idempotencyKey;
     }
-    if (request.requestId) {
-      headers['X-Request-Id'] = request.requestId;
-    }
+    const requestId = this.protocolProfile === ProtocolProfile.PRODUCT_V1 ? productRequestId(request.requestId) : request.requestId;
+    if (requestId) headers['X-Request-Id'] = requestId;
     if (request.platformEncryptionKeyId) {
       headers['X-Platform-Encryption-Key-Id'] = request.platformEncryptionKeyId;
     }

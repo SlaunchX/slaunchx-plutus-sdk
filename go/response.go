@@ -32,6 +32,8 @@ func (v *ResponseVerifier) PublicKey() *rsa.PublicKey { return v.publicKey }
 
 // ResponseBinding 是响应验签的本地绑定信息, 全部来自 SDK 自己发出的请求。
 type ResponseBinding struct {
+	ProtocolProfile ProtocolProfile
+	SentRequestID   string
 	// RequestCanonicalSHA256 是请求规范串的 SHA-256 小写 hex, 必须本地计算。
 	RequestCanonicalSHA256 string
 	// APIVersion 是本次请求的 X-API-VERSION。
@@ -45,6 +47,9 @@ type ResponseBinding struct {
 // 缺少 X-Response-Signature 时返回 ErrResponseSignatureMissing;
 // 验签失败时返回 ErrResponseSignatureInvalid, 调用方必须丢弃响应体。
 func (v *ResponseVerifier) Verify(binding ResponseBinding, status int, header http.Header, body []byte) error {
+	if err := binding.ProtocolProfile.validate(); err != nil {
+		return err
+	}
 	signature := header.Get(HeaderResponseSignature)
 	if signature == "" {
 		return ErrResponseSignatureMissing
@@ -52,12 +57,26 @@ func (v *ResponseVerifier) Verify(binding ResponseBinding, status int, header ht
 	if alg := header.Get(HeaderResponseSignatureAlgorithm); alg != "" && !strings.EqualFold(alg, SignatureAlgorithm) {
 		return fmt.Errorf("%w: unexpected algorithm %q", ErrResponseSignatureInvalid, alg)
 	}
+	requestID := header.Get(HeaderRequestID)
+	present := false
+	for name := range header {
+		if strings.EqualFold(name, HeaderRequestID) {
+			present = true
+		}
+	}
+	if !present && binding.ProtocolProfile == ProductV1 {
+		if strings.TrimSpace(binding.SentRequestID) == "" {
+			return fmt.Errorf("%w: product response missing request ID and no sent ID retained", ErrResponseSignatureInvalid)
+		}
+		requestID = binding.SentRequestID
+	}
 	canonical := CanonicalResponse{
+		ProtocolProfile:        binding.ProtocolProfile,
 		RequestCanonicalSHA256: binding.RequestCanonicalSHA256,
 		APIVersion:             binding.APIVersion,
 		ExternalPath:           binding.ExternalPath,
 		OperationID:            header.Get(HeaderOperationID),
-		RequestID:              header.Get(HeaderRequestID),
+		RequestID:              requestID,
 		HTTPStatus:             status,
 		ContentType:            header.Get("Content-Type"),
 		ResponseTimestamp:      header.Get(HeaderResponseTimestamp),

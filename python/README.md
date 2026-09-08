@@ -1,5 +1,19 @@
 # SlaunchX Plutus 商户 Python SDK
 
+## product 接入
+
+接入 product 时显式选择以下配置；默认仍使用 Alpha 规则，不会在验签失败后自动切换。
+
+```python
+from slaunchx_plutus_sdk import ProtocolProfile
+# 在 PlutusConfig(...) 中增加：
+protocol_profile=ProtocolProfile.PRODUCT_V1
+```
+
+product 请求按 7 行签名、响应按 5 行验签。URL 参数按 product 的排序和编码规则处理。SDK 自动发送并保存请求编号；响应缺少 `X-Request-Id` 时，用本次发送的编号验签。响应已有编号时使用返回值，验签失败仍报错。
+
+这些改动仅在本地验证，尚未发布；下文未特别说明的协议细节和原有黄金向量使用默认 Alpha 规则。
+
 协议 `SLAUNCHX-PLUTUS-API-V1` 的 Python 实现,只覆盖传输层:请求签名、响应验签、
 混合加密信封、Webhook 验签与解密。**不建立业务端点模型** —— 外部路径与业务载荷由调用方给出,
 因此平台新增端点时无需升级 SDK。
@@ -69,6 +83,7 @@ PyPI 发布后可直接 `pip install slaunchx-plutus-sdk`。
 ```python
 # 正确:base_url 是对外 CONSUMER API 域名,path 是外部路径
 config = PlutusConfig(
+    api_version="1",
     base_url="https://consumer-api.example.com",
     api_key="apk_xxxxxxxx",
     ...
@@ -81,6 +96,7 @@ client.post("/card-products/10010106/shared/cards/create", json_body={...}, encr
 ```python
 # 错误:base_url 用了源站地址,并且自行拼了内部前缀 —— 验签必然失败
 config = PlutusConfig(
+    api_version="1",
     base_url="https://origin-host/prometheus/api/v1/consumer",
     ...
 )
@@ -94,6 +110,7 @@ config = PlutusConfig(
 from slaunchx_plutus_sdk import PlutusClient, PlutusConfig
 
 client = PlutusClient(PlutusConfig(
+    api_version="1",
     base_url="https://consumer-api.slaunchx.example",
     api_key="apk_xxxxxxxx",
     merchant_auth_private_key="/etc/slaunchx/merchant_auth_private.pem",
@@ -152,6 +169,7 @@ else:
 
 ```python
 client = PlutusClient(PlutusConfig(
+    api_version="1",
     base_url="https://consumer-api.slaunchx.example",
     api_key="apk_xxxxxxxx",
     merchant_auth_private_key="/etc/slaunchx/merchant_auth_private.pem",
@@ -251,7 +269,7 @@ async def slaunchx_webhook(request: Request) -> Response:
 ```python
 from slaunchx_plutus_sdk import RequestSigner, ResponseVerifier, serialize_json, load_private_key
 
-signer = RequestSigner(load_private_key("merchant_auth_private.pem"), "apk_xxxxxxxx")
+signer = RequestSigner(load_private_key("merchant_auth_private.pem"), "apk_xxxxxxxx", api_version="1")
 body = serialize_json({"quantity": 2})      # 只序列化一次
 signed = signer.sign("POST", "/card-products/cards/freeze", body=body)
 
@@ -275,7 +293,7 @@ import hashlib
 from slaunchx_plutus_sdk import RequestSigner, load_private_key
 
 private_key = load_private_key("/etc/slaunchx/merchant_auth_private.pem")
-signer = RequestSigner(private_key, api_key="apk_xxxxxxxx")
+signer = RequestSigner(private_key, api_key="apk_xxxxxxxx", api_version="1")
 
 signed = signer.sign(
     "POST",
@@ -326,7 +344,7 @@ signature = sign_canonical_string(private_key, canonical_string)
 4. **TIMESTAMP** —— 是否为 Unix **毫秒**十进制字符串(不是秒),且与 `X-Timestamp` 头原值
    逐字符一致。
 5. **NONCE** —— 是否与 `X-Nonce` 头原值逐字符一致,满足 `^[A-Za-z0-9._~-]{16,128}$`。
-6. **API_VERSION** —— 是否与 `X-API-VERSION` 头原值一致,当前恒为 `"1"`,不可为空。
+6. **API_VERSION** —— 是否与 `X-API-VERSION` 头原值一致,当前 product 填 `"1"`,不可为空。
 7. **IDEMPOTENCY_KEY** —— 有 `X-Idempotency-Key` 头则填其原值;**没有该头时本行必须是空串,
    不是把这一行整体去掉**(8 行结构固定,少一行会导致后续所有行错位)。
 8. **BODY_SHA256_HEX** —— 是否对**实际要发送的字节**(不是发送前的业务对象、不是美化后的
@@ -428,7 +446,7 @@ SDK 不做「按状态码白名单放行」:成功响应必须可证明来源,�
 | `platform_auth_public_key` | PEM / 路径 / 密钥对象 | `None` | 平台认证公钥,验响应与 Webhook 签名 |
 | `platform_enc_public_key` | PEM / 路径 / 密钥对象 | `None` | 平台加密公钥,加密请求体 |
 | `merchant_enc_private_key` | PEM / 路径 / 密钥对象 | `None` | 商户加密私钥,解密敏感响应与 Webhook |
-| `api_version` | `str` | `"1"` | `X-API-VERSION`,参与签名;当前只服务 `1` |
+| `api_version` | `str` | 无（必填） | `X-API-VERSION`,参与签名;当前只服务 `1` |
 | `timeout` | `float` 或 `(connect, read)` | `30.0` | requests 超时,秒 |
 | `verify_response_signature` | `bool` | `True` | 是否验证响应签名。关闭仅限联调 |
 | `require_signature_on_error_responses` | `bool` | `False` | 非 2xx 响应缺签名头是否也报错。2xx 缺签名头始终报错,不受此开关影响 |
@@ -491,3 +509,5 @@ SDK 不做「按状态码白名单放行」:成功响应必须可证明来源,�
 cd python
 .venv/bin/python -m pytest -q
 ```
+
+`X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。

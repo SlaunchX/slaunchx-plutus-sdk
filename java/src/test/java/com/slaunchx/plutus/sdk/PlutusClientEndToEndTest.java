@@ -74,7 +74,7 @@ class PlutusClientEndToEndTest {
     }
 
     private static PlutusConfig.Builder baseConfig() {
-        return PlutusConfig.builder()
+        return PlutusConfig.builder().apiVersion("1")
                 .baseUrl(baseUrl + "/")
                 .apiKey("apk_vector_0001")
                 .merchantAuthPrivateKeyPem(TestVectors.privateKeyPem("merchant_auth"))

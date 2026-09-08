@@ -1,3 +1,4 @@
+import { ProtocolProfile, productRequestId } from './protocol.js';
 /**
  * 通用 HTTP 客户端:组装签名头、一次序列化 body、对同一字节签名并发送,再验签与解析响应。
  */
@@ -104,6 +105,7 @@ export class PlutusClient {
   constructor(config: PlutusConfig) {
     this.config = resolveConfig(config);
     this.signer = new RequestSigner({
+      protocolProfile: this.config.protocolProfile,
       apiKey: this.config.apiKey,
       merchantAuthPrivateKey: this.config.merchantAuthPrivateKey,
       apiVersion: this.config.apiVersion,
@@ -114,6 +116,7 @@ export class PlutusClient {
     this.verifier =
       this.config.verifyResponseSignature && this.config.platformAuthPublicKey
         ? new ResponseVerifier({
+            protocolProfile: this.config.protocolProfile,
             platformAuthPublicKey: this.config.platformAuthPublicKey,
             requireSignatureOnErrorResponses: this.config.requireSignatureOnErrorResponses,
             strictKeyValidation: this.config.strictKeyValidation,
@@ -195,6 +198,7 @@ export class PlutusClient {
     let signatureVerified = false;
     if (this.verifier) {
       const result = this.verifier.verify({
+        sentRequestId: signed.headers['X-Request-Id'],
         requestCanonicalSha256: signed.requestCanonicalSha256,
         apiVersion: signed.apiVersion,
         externalPath: signed.externalPath,
@@ -288,11 +292,20 @@ export class PlutusClient {
       typeof options.query === 'string' || options.query == null
         ? options.query ?? ''
         : encodeQueryParams(options.query);
-    const canonicalQuery = canonicalizeQuery(rawQuery);
+    const canonicalQuery = canonicalizeQuery(rawQuery, this.config.protocolProfile);
 
     // 时间戳必须先于加密生成:AAD 第三分量与签名第 4 行必须是同一个值。
     const timestamp = options.timestamp ?? String(this.config.now());
-    const requestId = options.requestId ?? (options.encrypt ? this.config.requestIdGenerator() : undefined);
+    let requestId = options.requestId ?? (options.encrypt ? this.config.requestIdGenerator() : undefined);
+    const extraHeaders = { ...this.config.defaultHeaders, ...(options.headers ?? {}) };
+    if (this.config.protocolProfile === ProtocolProfile.PRODUCT_V1) {
+      const ids = Object.entries(extraHeaders).filter(([name]) => name.toLowerCase() === 'x-request-id');
+      if (ids.length > 1 || (ids.length > 0 && options.requestId !== undefined)) {
+        throw new PlutusRequestError('X-Request-Id must not be specified more than once');
+      }
+      requestId = productRequestId(ids.length ? ids[0]![1] : requestId ?? this.config.requestIdGenerator());
+      for (const [name] of ids) delete extraHeaders[name];
+    }
 
     let bodyBytes: Buffer | null;
     let inferredContentType: string | null;
@@ -357,8 +370,7 @@ export class PlutusClient {
     });
 
     const headers: Record<string, string> = {
-      ...this.config.defaultHeaders,
-      ...(options.headers ?? {}),
+      ...extraHeaders,
       ...signed.headers,
       Accept: options.headers?.['Accept'] ?? this.config.defaultHeaders['Accept'] ?? 'application/json',
       'User-Agent': this.config.userAgent,

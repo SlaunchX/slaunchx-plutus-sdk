@@ -39,7 +39,7 @@ final class PlutusConfig
      * @param string|null   $platformEncPublicKeyPem     平台加密公钥 (SPKI PEM), 请求加密所需
      * @param string|null   $platformEncKeyId            平台加密公钥指纹; 为 null 时从 PEM 推导
      * @param string|null   $platformAuthKeyId           平台认证公钥指纹; 非 null 时与响应头 `X-Platform-Signing-Key-Id` 比对
-     * @param string        $apiVersion                  `X-API-VERSION` 的值, 当前恒为 `1`
+     * @param string        $apiVersion                  `X-API-VERSION` 的值, 必填；当前 product 填 `1`
      * @param bool          $verifyResponseSignature     是否校验响应签名, 默认开启
      * @param bool          $requireSignatureOnErrorResponses 非 2xx 响应缺少 `X-Response-Signature` 时是否也强制验签, 默认关闭。
      *                                                   与之无关: HTTP 2xx 缺签名头一律抛
@@ -61,17 +61,19 @@ final class PlutusConfig
      *                                                   是否直接拒绝, 默认 `false` (仅记录一条 `error_log`
      *                                                   提示, 不阻断请求)。设计取舍见
      *                                                   {@see \SlaunchX\Plutus\EncryptedRoutes} 类注释。
+     * @param ProtocolProfile $protocolProfile          明确选择协议；product 后端使用 PRODUCT_V1。
+     *                                                   不自动探测或降级，默认保持原有请求绑定协议。
      */
     public function __construct(
         public readonly string $baseUrl,
         public readonly string $apiKey,
         public readonly string $merchantAuthPrivateKeyPem,
+        public readonly string $apiVersion,
         public readonly ?string $platformAuthPublicKeyPem = null,
         public readonly ?string $merchantEncPrivateKeyPem = null,
         public readonly ?string $platformEncPublicKeyPem = null,
         public readonly ?string $platformEncKeyId = null,
         public readonly ?string $platformAuthKeyId = null,
-        public readonly string $apiVersion = '1',
         public readonly bool $verifyResponseSignature = true,
         public readonly bool $requireSignatureOnErrorResponses = false,
         public readonly bool $throwOnErrorStatus = true,
@@ -84,12 +86,13 @@ final class PlutusConfig
         public readonly ?Closure $clock = null,
         public readonly array $curlOptions = [],
         public readonly bool $strictEncryptedRouteValidation = false,
+        public readonly ProtocolProfile $protocolProfile = ProtocolProfile::REQUEST_BOUND_V1,
     ) {
         if ($apiKey === '') {
             throw new ConfigurationException('apiKey 不能为空');
         }
-        if ($apiVersion === '') {
-            throw new ConfigurationException('apiVersion 不能为空, 当前协议恒为 "1"');
+        if (trim($apiVersion) === '') {
+            throw new ConfigurationException('apiVersion 必须显式填写且不能为空');
         }
         if ($merchantAuthPrivateKeyPem === '') {
             throw new ConfigurationException('merchantAuthPrivateKeyPem 不能为空');

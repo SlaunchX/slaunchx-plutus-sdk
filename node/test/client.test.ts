@@ -149,6 +149,7 @@ function rebuildRequestCanonicalSha(params: {
 
 function baseConfig(overrides: Partial<PlutusConfig> = {}): PlutusConfig {
   return {
+    apiVersion: '1',
     baseUrl: BASE_URL,
     apiKey: 'apk_vector_0001',
     keys: {
@@ -569,6 +570,7 @@ describe('配置校验', () => {
     expect(
       () =>
         new PlutusClient({
+          apiVersion: '1',
           baseUrl: BASE_URL,
           apiKey: 'apk',
           keys: { merchantAuthPrivateKey: merchantAuth.privateKeyPem },

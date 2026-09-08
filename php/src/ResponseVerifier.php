@@ -11,9 +11,9 @@ use SlaunchX\Plutus\Model\SignedRequest;
 use SlaunchX\Plutus\Support\Keys;
 
 /**
- * 响应验签: 按 `SLAUNCHX-API-RESPONSE-V1` 的 10 行规范串校验 `X-Response-Signature`。
+ * 响应验签: 默认按 10 行请求绑定规范串，PRODUCT_V1 按后端的 5 行规范串。
  *
- * 规范串第 2 行的请求绑定摘要必须由 SDK 本地计算 (取自 {@see SignedRequest}),
+ * 默认协议第 2 行的请求绑定摘要必须由 SDK 本地计算 (取自 {@see SignedRequest}),
  * 绝不能从响应头读取, 否则绑定失效。
  */
 final class ResponseVerifier
@@ -29,7 +29,7 @@ final class ResponseVerifier
     }
 
     /**
-     * 拼接 10 行响应规范串 (LF 连接, 无尾换行)。
+     * 拼接响应规范串 (LF 连接, 无尾换行)。默认 10 行，PRODUCT_V1 为 5 行。
      *
      * @param string      $requestCanonicalSha256 请求规范串的 SHA-256, 小写 hex
      * @param string|null $operationId            响应头 `X-Operation-Id`; 无则传 null
@@ -47,7 +47,14 @@ final class ResponseVerifier
         ?string $contentType,
         string $responseTimestamp,
         string $responseBodyHash,
+        ProtocolProfile $protocolProfile = ProtocolProfile::REQUEST_BOUND_V1,
     ): string {
+        if ($protocolProfile === ProtocolProfile::PRODUCT_V1) {
+            return implode("\n", [
+                $requestId ?? '', (string) $httpStatus, $contentType ?? '',
+                $responseTimestamp, $responseBodyHash,
+            ]);
+        }
         return implode("\n", [
             self::CANONICAL_PREFIX,
             $requestCanonicalSha256,
@@ -141,16 +148,26 @@ final class ResponseVerifier
             );
         }
 
+        $responseRequestId = $response->header('X-Request-Id');
+        if ($responseRequestId === null && $this->config->protocolProfile === ProtocolProfile::PRODUCT_V1) {
+            // Use only this request's retained ID; the full RSA signature must still verify.
+            $responseRequestId = $request->headers['X-Request-Id'] ?? null;
+            if ($responseRequestId === null || trim($responseRequestId) === '') {
+                throw new ResponseSignatureException('product 响应缺少 X-Request-Id，且本次请求未保留该值');
+            }
+        }
+
         $canonicalString = self::buildCanonicalString(
             $request->requestCanonicalSha256,
             $request->apiVersion,
             $request->externalPath,
             $response->header('X-Operation-Id'),
-            $response->header('X-Request-Id'),
+            $responseRequestId,
             $response->statusCode,
             $response->header('Content-Type'),
             $timestamp,
             self::bodyDigestHex($response->body),
+            $this->config->protocolProfile,
         );
 
         if (!self::verifyCanonicalString($canonicalString, $signature, $this->config->platformAuthPublicKey())) {

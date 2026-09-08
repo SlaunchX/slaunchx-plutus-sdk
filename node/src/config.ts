@@ -1,3 +1,4 @@
+import { ProtocolProfile, resolveProfile } from './protocol.js';
 /**
  * 客户端配置与规范化。
  */
@@ -5,7 +6,6 @@
 import { randomBytes, type KeyObject } from 'node:crypto';
 import { PlutusConfigError } from './errors.js';
 import { keyFingerprint, loadPrivateKey, loadPublicKey, type KeyInput } from './keys.js';
-import { DEFAULT_API_VERSION } from './signer.js';
 
 /** 四把密钥。除 `merchantAuthPrivateKey` 外按需提供。 */
 export interface PlutusKeyMaterial {
@@ -21,6 +21,8 @@ export interface PlutusKeyMaterial {
 
 /** {@link PlutusClient} 配置。 */
 export interface PlutusConfig {
+  /** Explicit protocol; default preserves Alpha. */
+  protocolProfile?: ProtocolProfile;
   /**
    * CONSUMER API 主机根地址,例如 `https://consumer-api.example.com`。不含链/版本/门户前缀。
    *
@@ -42,8 +44,8 @@ export interface PlutusConfig {
   apiKey: string;
   /** 密钥材料 */
   keys: PlutusKeyMaterial;
-  /** API 契约主版本,默认 `1` */
-  apiVersion?: string;
+  /** API 契约主版本,必填；当前 product 填 `1` */
+  apiVersion: string;
   /** 是否验证响应签名,默认 `true` */
   verifyResponseSignature?: boolean;
   /**
@@ -88,6 +90,7 @@ export interface PlutusConfig {
 
 /** 规范化后的内部配置。 */
 export interface ResolvedConfig {
+  protocolProfile: ProtocolProfile;
   baseUrl: string;
   apiKey: string;
   apiVersion: string;
@@ -142,6 +145,9 @@ export function resolveConfig(config: PlutusConfig): ResolvedConfig {
   if (!config || typeof config !== 'object') {
     throw new PlutusConfigError('config is required');
   }
+  if (typeof config.apiVersion !== 'string' || !config.apiVersion.trim()) {
+    throw new PlutusConfigError('apiVersion is required');
+  }
   if (!config.apiKey) {
     throw new PlutusConfigError('apiKey is required');
   }
@@ -173,9 +179,10 @@ export function resolveConfig(config: PlutusConfig): ResolvedConfig {
   }
 
   return {
+    protocolProfile: resolveProfile(config.protocolProfile),
     baseUrl: normalizeBaseUrl(config.baseUrl),
     apiKey: config.apiKey,
-    apiVersion: config.apiVersion ?? DEFAULT_API_VERSION,
+    apiVersion: config.apiVersion,
     merchantAuthPrivateKey: loadPrivateKey(config.keys.merchantAuthPrivateKey, {
       strict,
       label: 'merchant_auth',

@@ -100,7 +100,7 @@ def test_signer_reproduces_vector_headers(case: Dict[str, Any], private_keys) ->
 
 
 def test_encrypted_request_headers(private_keys) -> None:
-    signer = RequestSigner(private_keys["merchant_auth"], "apk_vector_0001")
+    signer = RequestSigner(private_keys["merchant_auth"], "apk_vector_0001", api_version="1")
     signed = signer.sign(
         "POST",
         "/card-products/10010106/shared/cards/create",
@@ -115,7 +115,7 @@ def test_encrypted_request_headers(private_keys) -> None:
 
 
 def test_external_path_must_not_carry_version_prefix(private_keys) -> None:
-    signer = RequestSigner(private_keys["merchant_auth"], "apk_vector_0001")
+    signer = RequestSigner(private_keys["merchant_auth"], "apk_vector_0001", api_version="1")
     with pytest.raises(ConfigurationError):
         signer.sign("GET", "card-products/cards/page")
 

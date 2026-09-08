@@ -66,9 +66,9 @@ public final class PlutusClient implements AutoCloseable {
             throw new PlutusConfigurationException("使用 PlutusClient 时必须配置 baseUrl");
         }
         this.config = config;
-        this.signer = new RequestSigner(config.merchantAuthPrivateKey());
+        this.signer = new RequestSigner(config.merchantAuthPrivateKey(), config.protocolProfile());
         this.verifier = config.platformAuthPublicKey() == null
-                ? null : new ResponseVerifier(config.platformAuthPublicKey());
+                ? null : new ResponseVerifier(config.platformAuthPublicKey(), config.protocolProfile());
         this.envelopeCodec = new EnvelopeCodec();
     }
 
@@ -94,6 +94,19 @@ public final class PlutusClient implements AutoCloseable {
             throw new PlutusException("nonce 不满足 [A-Za-z0-9._~-]{16,128} 约束");
         }
         String requestId = request.requestId();
+        if (config.protocolProfile() == ProtocolProfile.PRODUCT_V1) {
+            var ids = request.extraHeaders().entrySet().stream()
+                    .filter(entry -> entry.getKey().equalsIgnoreCase(PlutusHeaders.REQUEST_ID)).toList();
+            if (ids.size() > 1 || (!ids.isEmpty() && requestId != null)) {
+                throw new PlutusException("X-Request-Id must not be specified more than once");
+            }
+            if (!ids.isEmpty()) requestId = ids.get(0).getValue();
+            if (requestId != null && (requestId.contains("\r") || requestId.contains("\n"))) {
+                throw new PlutusException("X-Request-Id must not contain newlines");
+            }
+            requestId = requestId == null ? "" : requestId.trim();
+            if (requestId.isEmpty()) requestId = "req_" + UUID.randomUUID().toString().replace("-", "");
+        }
         if (request.encrypted() && (requestId == null || requestId.isBlank())) {
             requestId = "req_" + UUID.randomUUID().toString().replace("-", "");
         }
@@ -138,6 +151,8 @@ public final class PlutusClient implements AutoCloseable {
                         : HttpRequest.BodyPublishers.ofByteArray(wireBody));
 
         for (Map.Entry<String, String> entry : request.extraHeaders().entrySet()) {
+            if (config.protocolProfile() == ProtocolProfile.PRODUCT_V1
+                    && entry.getKey().equalsIgnoreCase(PlutusHeaders.REQUEST_ID)) continue;
             http.header(entry.getKey(), entry.getValue());
         }
         http.header(PlutusHeaders.API_KEY, config.apiKey());
@@ -172,7 +187,7 @@ public final class PlutusClient implements AutoCloseable {
             throw new PlutusTransportException("请求被中断: " + request.method() + " " + request.path(), e);
         }
 
-        boolean verified = verifyResponse(request, signed, httpResponse);
+        boolean verified = verifyResponse(request, signed, httpResponse, requestId);
         return new PlutusResponse(httpResponse.statusCode(), httpResponse.headers(), httpResponse.body(),
                 signed, verified, config.objectMapper());
     }
@@ -266,7 +281,7 @@ public final class PlutusClient implements AutoCloseable {
     }
 
     private boolean verifyResponse(PlutusRequest request, SignedRequest signed,
-                                   HttpResponse<byte[]> httpResponse) {
+                                   HttpResponse<byte[]> httpResponse, String sentRequestId) {
         if (!config.verifyResponseSignature()) {
             return false;
         }
@@ -288,12 +303,19 @@ public final class PlutusClient implements AutoCloseable {
                             + "; 如确需接受未签名响应请关闭 verifyResponseSignature"
                             + (http2xx ? "" : ", 或关闭 requireSignatureOnErrorResponses"));
         }
+        String responseRequestId = httpResponse.headers().firstValue(PlutusHeaders.REQUEST_ID).orElse(null);
+        if (responseRequestId == null && config.protocolProfile() == ProtocolProfile.PRODUCT_V1) {
+            if (sentRequestId == null || sentRequestId.isBlank()) {
+                throw new PlutusSignatureException("product response missing X-Request-Id and no sent ID retained");
+            }
+            responseRequestId = sentRequestId;
+        }
         ResponseSignatureContext context = new ResponseSignatureContext(
                 signed.requestCanonicalSha256(),
                 config.apiVersion(),
                 request.path(),
                 httpResponse.headers().firstValue(PlutusHeaders.OPERATION_ID).orElse(null),
-                httpResponse.headers().firstValue(PlutusHeaders.REQUEST_ID).orElse(null),
+                responseRequestId,
                 httpResponse.statusCode(),
                 httpResponse.headers().firstValue(PlutusHeaders.CONTENT_TYPE).orElse(null),
                 httpResponse.headers().firstValue(PlutusHeaders.RESPONSE_TIMESTAMP).orElse(null),

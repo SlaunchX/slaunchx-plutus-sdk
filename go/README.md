@@ -1,5 +1,18 @@
 # SlaunchX Plutus 商户 Go SDK
 
+## product 接入
+
+接入 product 时显式选择以下配置；默认仍使用 Alpha 规则，不会在验签失败后自动切换。
+
+```go
+// 在 plutus.Config 中增加：
+ProtocolProfile: plutus.ProductV1,
+```
+
+product 请求按 7 行签名、响应按 5 行验签。URL 参数按 product 的排序和编码规则处理。SDK 自动发送并保存请求编号；响应缺少 `X-Request-Id` 时，用本次发送的编号验签。响应已有编号时使用返回值，验签失败仍报错。
+
+这些改动仅在本地验证，尚未发布；下文未特别说明的协议细节和原有黄金向量使用默认 Alpha 规则。
+
 协议 `SLAUNCHX-PLUTUS-API-V1` 的 Go 实现,覆盖请求签名、加密请求、响应验签、敏感响应解密、
 Webhook 验签与解密。仅依赖 Go 标准库,零第三方依赖。
 
@@ -65,6 +78,7 @@ go env -w GOPRIVATE=github.com/slaunchx/*
 
 ```go
 client, err := plutus.New(plutus.Config{
+    APIVersion: "1",
     BaseURL:                   "https://consumer-api.slaunchx.example",
     APIKey:                    "apk_xxx",
     MerchantAuthPrivateKeyPEM: merchantAuthPrivPEM,
@@ -88,6 +102,7 @@ SDK 对外部路径签名,源站地址或拼错的前缀会导致签名规范串
 ```go
 // 正确: BaseURL 只到 host, Request.Path 是外部路径, SDK 对 "/card-products/..." 签名。
 client, err := plutus.New(plutus.Config{
+    APIVersion: "1",
     BaseURL: "https://consumer-api.slaunchx.example",
     // ...
 })
@@ -101,6 +116,7 @@ resp, err := client.Do(ctx, plutus.Request{
 ```go
 // 错误: BaseURL 指向源站并拼了内部前缀, 签名必然失败。
 client, err := plutus.New(plutus.Config{
+    APIVersion: "1",
     BaseURL: "https://origin.internal.example/prometheus/api/v1/consumer",
     // ...
 })
@@ -364,7 +380,7 @@ receiver, err := plutus.NewWebhookReceiver(plutus.WebhookConfig{
 | --- | --- | --- | --- |
 | `BaseURL` | `string` | 必填 | 商户 API 基地址,必须是对外 CONSUMER API 域名,不含链/版本/门户前缀,不能是源站地址或自行拼接的 `/prometheus`、`/api/v1/consumer` 前缀 |
 | `APIKey` | `string` | 必填 | API Key 业务 ID,即 `X-Api-Key` |
-| `APIVersion` | `string` | `"1"` | `X-API-VERSION`,参与签名 |
+| `APIVersion` | `string` | 无（必填） | `X-API-VERSION`,参与签名 |
 | `MerchantAuthPrivateKeyPEM` / `MerchantAuthPrivateKey` | `[]byte` / `*rsa.PrivateKey` | 必填 | 请求签名私钥 |
 | `PlatformAuthPublicKeyPEM` / `PlatformAuthPublicKey` | `[]byte` / `*rsa.PublicKey` | 验签开启时必填 | 响应与 Webhook 验签公钥 |
 | `PlatformEncPublicKeyPEM` / `PlatformEncPublicKey` | `[]byte` / `*rsa.PublicKey` | 加密端点必填 | 请求加密公钥 |
@@ -527,3 +543,5 @@ go test ./...
 的业务失败,以及缺签名头的三种情形。
 
 向量中的 RSA 私钥仅用于测试,绝不可用于任何真实环境。
+
+`X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。

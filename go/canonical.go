@@ -168,6 +168,8 @@ func BodyDigestHex(method string, body []byte) string {
 
 // CanonicalRequest 是构造请求规范串所需的全部输入。
 type CanonicalRequest struct {
+	ProtocolProfile ProtocolProfile
+	RequestID       string
 	// Method 是 HTTP 方法, 大写。
 	Method string
 	// ExternalPath 是外部路径, 以 / 开头, 不含 query, 不含链/版本/门户前缀。
@@ -197,7 +199,7 @@ func (r CanonicalRequest) CanonicalString() (string, error) {
 	if strings.TrimSpace(r.APIVersion) == "" {
 		return "", fmt.Errorf("%w: api version is required", ErrInvalidConfig)
 	}
-	canonicalQuery, err := CanonicalizeQuery(r.RawQuery)
+	canonicalQuery, err := CanonicalizeQueryForProfile(r.RawQuery, r.ProtocolProfile)
 	if err != nil {
 		return "", err
 	}
@@ -211,11 +213,15 @@ func (r CanonicalRequest) CanonicalString() (string, error) {
 		r.IdempotencyKey,
 		BodyDigestHex(r.Method, r.Body),
 	}
+	if r.ProtocolProfile == ProductV1 {
+		lines = append(lines[:6], lines[7:]...)
+	}
 	return strings.Join(lines, "\n"), nil
 }
 
 // CanonicalResponse 是构造响应规范串所需的全部输入。
 type CanonicalResponse struct {
+	ProtocolProfile ProtocolProfile
 	// RequestCanonicalSHA256 是本次请求规范串的 SHA-256 小写 hex, 必须本地计算,
 	// 绝不能从响应头读取。
 	RequestCanonicalSHA256 string
@@ -250,6 +256,9 @@ func (r CanonicalResponse) CanonicalString() string {
 		r.ContentType,
 		r.ResponseTimestamp,
 		SHA256Hex(r.Body),
+	}
+	if r.ProtocolProfile == ProductV1 {
+		lines = lines[5:]
 	}
 	return strings.Join(lines, "\n")
 }

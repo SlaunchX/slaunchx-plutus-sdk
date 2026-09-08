@@ -115,6 +115,7 @@ describe('requestSignature 负向', () => {
 
   it('省略幂等键会改变规范串第 7 行,导致签名不同', () => {
     const signer = new RequestSigner({
+      apiVersion: '1',
       apiKey: 'apk_vector_0001',
       merchantAuthPrivateKey: merchantAuth.privateKeyPem,
     });
@@ -132,6 +133,7 @@ describe('requestSignature 负向', () => {
 
   it('nonce 不合规时本地抛错', () => {
     const signer = new RequestSigner({
+      apiVersion: '1',
       apiKey: 'apk_vector_0001',
       merchantAuthPrivateKey: merchantAuth.privateKeyPem,
     });
@@ -142,6 +144,7 @@ describe('requestSignature 负向', () => {
 
   it('秒级时间戳不会被自动纠正,但格式非数字时抛错', () => {
     const signer = new RequestSigner({
+      apiVersion: '1',
       apiKey: 'apk_vector_0001',
       merchantAuthPrivateKey: merchantAuth.privateKeyPem,
     });
@@ -152,6 +155,7 @@ describe('requestSignature 负向', () => {
 
   it('默认生成的 nonce 与时间戳满足协议约束', () => {
     const signer = new RequestSigner({
+      apiVersion: '1',
       apiKey: 'apk_vector_0001',
       merchantAuthPrivateKey: merchantAuth.privateKeyPem,
     });

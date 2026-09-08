@@ -197,7 +197,7 @@ func newTestClient(t *testing.T, platform *mockPlatform, mutate func(*Config)) (
 	server := httptest.NewServer(platform)
 	t.Cleanup(server.Close)
 
-	cfg := Config{
+	cfg := Config{APIVersion: "1",
 		BaseURL:                server.URL,
 		APIKey:                 "apk_vector_0001",
 		MerchantAuthPrivateKey: privateKey(t, "merchant_auth"),
@@ -535,16 +535,16 @@ func TestClientRequiresSignedSuccessResponse(t *testing.T) {
 }
 
 func TestClientConfigValidation(t *testing.T) {
-	if _, err := New(Config{APIKey: "apk", MerchantAuthPrivateKey: privateKey(t, "merchant_auth")}); !errors.Is(err, ErrInvalidConfig) {
+	if _, err := New(Config{APIVersion: "1", APIKey: "apk", MerchantAuthPrivateKey: privateKey(t, "merchant_auth")}); !errors.Is(err, ErrInvalidConfig) {
 		t.Error("missing base url must be rejected")
 	}
-	if _, err := New(Config{BaseURL: "https://example.com", MerchantAuthPrivateKey: privateKey(t, "merchant_auth")}); !errors.Is(err, ErrInvalidConfig) {
+	if _, err := New(Config{APIVersion: "1", BaseURL: "https://example.com", MerchantAuthPrivateKey: privateKey(t, "merchant_auth")}); !errors.Is(err, ErrInvalidConfig) {
 		t.Error("missing api key must be rejected")
 	}
-	if _, err := New(Config{BaseURL: "https://example.com", APIKey: "apk"}); !errors.Is(err, ErrInvalidConfig) {
+	if _, err := New(Config{APIVersion: "1", BaseURL: "https://example.com", APIKey: "apk"}); !errors.Is(err, ErrInvalidConfig) {
 		t.Error("missing merchant_auth key must be rejected")
 	}
-	if _, err := New(Config{
+	if _, err := New(Config{APIVersion: "1",
 		BaseURL:                "https://example.com",
 		APIKey:                 "apk",
 		MerchantAuthPrivateKey: privateKey(t, "merchant_auth"),
@@ -552,7 +552,7 @@ func TestClientConfigValidation(t *testing.T) {
 		t.Error("response verification enabled without platform_auth key must be rejected")
 	}
 
-	client, err := New(Config{
+	client, err := New(Config{APIVersion: "1",
 		BaseURL:                "https://example.com",
 		APIKey:                 "apk",
 		MerchantAuthPrivateKey: privateKey(t, "merchant_auth"),

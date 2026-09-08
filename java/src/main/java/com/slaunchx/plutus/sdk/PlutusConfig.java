@@ -24,6 +24,7 @@ import java.time.Duration;
  */
 public final class PlutusConfig {
 
+    private final ProtocolProfile protocolProfile;
     private final URI baseUrl;
     private final String apiKey;
     private final String apiVersion;
@@ -43,6 +44,8 @@ public final class PlutusConfig {
     private final ObjectMapper objectMapper;
 
     private PlutusConfig(Builder b) {
+        if (b.protocolProfile == null) throw new PlutusConfigurationException("protocolProfile is required");
+        this.protocolProfile = b.protocolProfile;
         if (b.apiKey == null || b.apiKey.isBlank()) {
             throw new PlutusConfigurationException("缺少 apiKey");
         }
@@ -113,6 +116,8 @@ public final class PlutusConfig {
      *
      * @return 商户 API 基地址,不含路径;仅在使用 {@link PlutusClient} 时必填
      */
+    public ProtocolProfile protocolProfile() { return protocolProfile; }
+
     public URI baseUrl() {
         return baseUrl;
     }
@@ -221,9 +226,13 @@ public final class PlutusConfig {
      */
     public static final class Builder {
 
+        private ProtocolProfile protocolProfile = ProtocolProfile.REQUEST_BOUND_V1;
+
+        public Builder protocolProfile(ProtocolProfile value) { this.protocolProfile = value; return this; }
+
         private String baseUrl;
         private String apiKey;
-        private String apiVersion = "1";
+        private String apiVersion;
         private String merchantAuthPrivateKeyPem;
         private String platformAuthPublicKeyPem;
         private String merchantEncPrivateKeyPem;
@@ -266,7 +275,7 @@ public final class PlutusConfig {
         }
 
         /**
-         * @param apiVersion 契约主版本,默认 {@code 1};参与签名,不可为空
+         * @param apiVersion 契约主版本,必填；当前 product 填 {@code 1};参与签名,不可为空
          * @return 自身
          */
         public Builder apiVersion(String apiVersion) {

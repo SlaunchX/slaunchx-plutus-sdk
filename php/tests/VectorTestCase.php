@@ -82,6 +82,7 @@ abstract class VectorTestCase extends TestCase
     protected static function config(array $overrides = []): PlutusConfig
     {
         $defaults = [
+            'apiVersion' => '1',
             'baseUrl' => 'https://consumer-api.example.test',
             'apiKey' => 'apk_vector_0001',
             'merchantAuthPrivateKeyPem' => self::privateKeyPem('merchant_auth'),

@@ -20,41 +20,42 @@ RSA-OAEP-SHA256 由 SDK 在 `OPENSSL_NO_PADDING` 之上自行完成 EME-OAEP 编
 
 ## 安装
 
-SDK 尚未发布到 Packagist,先用 VCS 仓库方式引入:
+SDK 位于仓库的 `php/` 子目录。将交付的完整 SDK 放到客户项目同级目录，用 path 仓库安装：
 
 ```json
 {
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "git@your-git-host:slaunchx/slaunchx-plutus-sdk.git"
-        }
-    ],
-    "require": {
-        "slaunchx/plutus-sdk": "dev-main"
-    }
+    "repositories": [{"type": "path", "url": "../slaunchx-plutus-sdk/php"}],
+    "require": {"slaunchx/plutus-sdk": "@dev"}
 }
 ```
 
-由于 SDK 位于单仓库的 `php/` 子目录,若上游未拆分子树,可改用 `path` 仓库指向本目录:
-
-```json
-{
-    "repositories": [
-        { "type": "path", "url": "../slaunchx-plutus-sdk/php" }
-    ],
-    "require": {
-        "slaunchx/plutus-sdk": "*"
-    }
-}
+```sh
+composer update slaunchx/plutus-sdk
 ```
 
-发布到 Packagist 后可直接:
+保留 `composer.lock`，同时固定 SDK 源码提交并保留该路径。当前未发布 Packagist 稳定包；仅锁定 Composer 文件不能固定另一个本地目录的内容。
 
-```bash
-# 占位,待 Packagist 发布后启用
-composer require slaunchx/plutus-sdk
-```
+## 选择服务端协议
+
+| 配置 | 请求签名 | 响应验签 | 适用范围 |
+| --- | --- | --- | --- |
+| `ProtocolProfile::PRODUCT_V1` | 7 行，不含幂等键行 | 5 行 | 当前 product 部署协议 |
+| `ProtocolProfile::REQUEST_BOUND_V1`（默认） | 8 行，含幂等键行 | 10 行，绑定本次请求 | 原有请求绑定协议 |
+
+本次 PHP 适配使用 `PRODUCT_V1`。必须按目标环境明确选择；SDK 不在验签失败后自动切换协议。
+`PRODUCT_V1` 仍发送 `X-API-VERSION: 1`，对应后端启用 API 版本校验的配置，不适用于关闭版本校验的旧 6 行模式。
+
+`PRODUCT_V1` 会为未指定 requestId 的请求自动生成 `X-Request-Id`。响应缺少这个头时，SDK 使用本次实际发送并保留的 requestId 重建响应规范串，仍完整验证 RSA 签名；响应已带该头时使用响应值，验签失败不会再尝试其他 ID。调用方显式指定 ID 时应保证每次独立请求使用唯一值。若代理改写了请求 ID 且响应未回传实际值，仍会验签失败。`REQUEST_BOUND_V1` 行为保持原样。
+
+兼容只作用于验签输入，`ApiResponse::requestId()` 仍反映实际响应，因此缺少响应头时可能为 null。
+
+product 请求签名依次为：方法、外部路径、规范化 Query、时间戳、Nonce、API 版本、Body SHA-256。
+幂等键作为请求头发送，由服务端处理，但不进入这套请求签名。
+product 响应签名依次为：请求 ID、HTTP 状态码、Content-Type、响应时间戳、Body SHA-256。
+这套旧协议本身不含请求摘要绑定；SDK 严格校验服务端提供的 5 行签名，不声明具备 10 行协议的绑定能力。
+
+可运行的完整初始化和 GET/POST 只读示例见 [`examples/product-readonly.php`](examples/product-readonly.php)。
+后文静态方法和黄金向量默认仍描述 `REQUEST_BOUND_V1`；手工排障 product 时需向静态方法传入对应 profile。
 
 ## 快速开始
 
@@ -63,14 +64,16 @@ composer require slaunchx/plutus-sdk
 ```php
 use SlaunchX\Plutus\PlutusClient;
 use SlaunchX\Plutus\PlutusConfig;
+use SlaunchX\Plutus\ProtocolProfile;
 
 $config = new PlutusConfig(
-    baseUrl: 'https://consumer-api.slaunchx.example',
+    apiVersion: '1',
+    protocolProfile: ProtocolProfile::PRODUCT_V1,
+    baseUrl: 'https://consumer-api.example.com',
     apiKey: 'apk_xxxxxxxxxxxx',
     merchantAuthPrivateKeyPem: file_get_contents('/secure/merchant_auth_private.pem'),
     platformAuthPublicKeyPem: file_get_contents('/secure/platform_auth_public.pem'),
-    merchantEncPrivateKeyPem: file_get_contents('/secure/merchant_enc_private.pem'),
-    platformEncPublicKeyPem: file_get_contents('/secure/platform_enc_public.pem'),
+    // 普通只读查询只需以上两份鉴权密钥；加密接口再配置加密密钥。
 );
 
 $client = new PlutusClient($config);
@@ -109,15 +112,14 @@ baseUrl: 'https://origin-host.internal/prometheus/api/v1/consumer'
 ```php
 // GET,query 由 SDK 规范化后参与签名
 $response = $client->get('/card-products/cards/page', [
-    'query' => ['pageSize' => 20, 'status' => 'IN_USE'],
+    'query' => ['page' => 0, 'size' => 20, 'status' => 30060203],
 ]);
 
-$rows = $response->dataPath('records', []);
+$rows = $response->dataPath('items', []);
 
 // POST,body 由 SDK 一次性序列化,摘要与实际发送使用同一字节串
-$response = $client->post('/card-products/cards/freeze', [
-    'json' => ['reasonCategory' => 'USER_REQUESTED'],
-    'idempotencyKey' => 'idem-20260830-0001',
+$response = $client->post('/card-products/groups/list', [
+    'json' => ['isActive' => true],
 ]);
 ```
 
@@ -217,7 +219,7 @@ http_response_code(200);
 平台验签失败时**不返回诊断信息**,商户只能靠客户端自检。`RequestSigner` 已经公开了
 「只签名不发送」的原语,自检时不需要真的发起 HTTP 请求。
 
-### 拿到 8 行规范串、其 SHA-256 与最终签名
+### 拿到所选协议的规范串、其 SHA-256 与最终签名
 
 最简单的方式是用 `PlutusClient::signer()` 拿到的 `RequestSigner` 实例调用 `sign()`,
 返回的 `SignedRequest` 即包含规范串、逐行拆分、规范串自身摘要与 Base64 签名,
@@ -254,7 +256,7 @@ echo "X-Timestamp: {$signed->timestamp}, X-Nonce: {$signed->nonce}\n";
 use SlaunchX\Plutus\RequestSigner;
 use SlaunchX\Plutus\Support\Keys;
 
-$canonicalQuery = RequestSigner::canonicalizeQuery('status=IN_USE&pageSize=20'); // -> pageSize=20&status=IN_USE
+$canonicalQuery = RequestSigner::canonicalizeQuery('status=30060203&size=20'); // -> size=20&status=30060203
 $bodyHash = RequestSigner::bodyDigestHex('GET', null); // GET 强制空 body 摘要
 
 $canonicalString = RequestSigner::buildCanonicalString(
@@ -276,7 +278,7 @@ $signature = RequestSigner::signCanonicalString($canonicalString, $privateKey);
 
 ### 逐行核对 checklist
 
-规范串按 `RequestSigner::buildCanonicalString()` 的实际顺序为 8 行(LF 连接,无尾换行):
+`REQUEST_BOUND_V1` 规范串按 `RequestSigner::buildCanonicalString()` 的顺序为 8 行(LF 连接,无尾换行):
 
 | 行号 | 内容 | 常见错误 |
 | --- | --- | --- |
@@ -285,7 +287,7 @@ $signature = RequestSigner::signCanonicalString($canonicalString, $privateKey);
 | 3 | 规范化 query | 未按「RFC 3986 全量百分号编码、按 `key` 再 `value` 字节序排序」处理;无 query 时是空串,不是省略该行 |
 | 4 | 时间戳 | 不是 Unix **毫秒**(常见错误是秒级 10 位而非 13 位);与 `X-Timestamp` 头不一致 |
 | 5 | nonce | 与 `X-Nonce` 头不一致;不满足 `^[A-Za-z0-9._~-]{16,128}$` |
-| 6 | apiVersion | 与 `X-API-VERSION` 头不一致(当前恒为 `"1"`) |
+| 6 | apiVersion | 与 `X-API-VERSION` 头不一致(当前 product 填 `"1"`) |
 | 7 | 幂等键 | **无幂等键时该行必须是空串,而不是整行省略**;发了 `X-Idempotency-Key` 却不参与签名 |
 | 8 | body 摘要 | 对**实际要发送的字节**求 SHA-256 而不是对业务对象重新序列化一次(重新序列化可能改变字段顺序/转义,产生不同字节);`GET` / `HEAD` / `DELETE` **无论是否带 body 都强制用空 body 摘要**(`RequestSigner::EMPTY_BODY_SHA256`),不能对其 body 实际求哈希 |
 
@@ -331,7 +333,7 @@ $signature = RequestSigner::signCanonicalString($canonicalString, $privateKey);
 
 ```php
 $response = $client->get('/card-products/cards/page', [
-    'query' => ['pageSize' => 20],
+    'query' => ['size' => 20],
 ]);
 
 $response->isSuccess();     // bool, 按上述算法
@@ -389,13 +391,14 @@ if (!$response->signatureVerified) {
 
 ## Query 发送形态
 
-SDK **默认发送规范化后的 query**(`PlutusConfig::$sendCanonicalQuery` 默认 `true`),
-即实际 URL 上的 query 与参与签名的规范串第 3 行是同一个串:按 RFC 3986 全量百分号编码、
-按 `key` 再 `value` 的字节序排序。传入 `['pageSize' => 20, 'status' => 'IN_USE']` 或
-字符串 `'status=IN_USE&pageSize=20'`,实际发送的都是 `pageSize=20&status=IN_USE`。
+SDK 默认发送规范化后的 Query（`sendCanonicalQuery=true`），URL Query 与参与签名的内容一致。
 
-置为 `false` 时改为原样发送调用方给出的原始 query 串,签名仍然基于规范化后的串。
-两种形态在平台侧等价(平台按同一规则规范化后验签),但排障时抓包看到的顺序会不同。
+- `REQUEST_BOUND_V1`：严格 RFC 3986 编码，按编码后的 key/value 排序。
+- `PRODUCT_V1`：按 Java form 规则解码（裸 `+` 为一个空格），按解码后的 UTF-16 key/value 排序，再编码；`~` 编为 `%7E`、`*` 保留、空格编为 `%20`。
+
+推荐传数组，例如 `['page' => 0, 'size' => 20, 'status' => 30060203]`。数组中真正的 `+` 会先编码为 `%2B`，不会变成空格。
+`PRODUCT_V1` 对非法 percent 转义和非法 UTF-8 提前报错，不复刻旧后端对错误输入的宽松处理。
+`sendCanonicalQuery=false` 时发送原始串，但签名依然按所选 profile 规范化。普通业务参数建议保留默认设置。
 
 ## 配置项
 
@@ -412,12 +415,13 @@ SDK **默认发送规范化后的 query**(`PlutusConfig::$sendCanonicalQuery` �
 | `platformEncPublicKeyPem` | `?string` | `null` | 平台加密公钥;请求加密所需 |
 | `platformEncKeyId` | `?string` | `null` | 平台加密公钥指纹;为空时从 PEM 推导 |
 | `platformAuthKeyId` | `?string` | `null` | 平台认证公钥指纹;非空时与 `X-Platform-Signing-Key-Id` 比对 |
-| `apiVersion` | `string` | `'1'` | `X-API-VERSION` 的值,参与签名 |
+| `apiVersion` | `string` | 无（必填） | `X-API-VERSION` 的值,参与签名 |
 | `verifyResponseSignature` | `bool` | `true` | 是否校验响应签名 |
 | `requireSignatureOnErrorResponses` | `bool` | `false` | 非 2xx 缺签名头时是否也强制验签;2xx 缺签名头一律报错,不受本开关影响 |
 | `throwOnErrorStatus` | `bool` | `true` | 响应判定为失败时抛出类型化异常,而非返回响应对象 |
 | `sendCanonicalQuery` | `bool` | `true` | 发送规范化后的 query 而非原始串(两者在平台侧等价) |
 | `connectTimeoutMs` | `int` | `5000` | 连接超时(毫秒) |
+| `protocolProfile` | `ProtocolProfile` | `REQUEST_BOUND_V1` | 目标 product 使用 `PRODUCT_V1`，明确选择，不自动降级 |
 | `timeoutMs` | `int` | `30000` | 整体超时(毫秒) |
 | `userAgent` | `string` | `slaunchx-plutus-php-sdk/1.0` | `User-Agent` 请求头 |
 | `webhookTimestampToleranceMs` | `int` | `0` | Webhook 时间戳容差(毫秒);`0` 表示不校验 |
@@ -492,7 +496,7 @@ use SlaunchX\Plutus\EnvelopeCodec;
 
 $signed = (new RequestSigner($config))->sign('POST', '/card-products/cards/freeze', body: $payload);
 $signed->headers;          // 完整请求头
-$signed->canonicalString;  // 8 行规范串, 排障时逐行比对
+$signed->canonicalString;  // 所选协议的规范串, 排障时逐行比对
 ```
 
 接入自有 HTTP 栈时实现 `SlaunchX\Plutus\Http\TransportInterface` 并传给 `PlutusClient`
@@ -526,3 +530,5 @@ RFC 8017 的 EME-OAEP 编解码与 MGF1(`Support\Oaep`),label 取空串。该路
 
 AES-256-GCM 使用 `openssl_encrypt` / `openssl_decrypt`,密文布局固定为
 `IV(12) || 密文 || 认证标签(16)`。
+
+`X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。
