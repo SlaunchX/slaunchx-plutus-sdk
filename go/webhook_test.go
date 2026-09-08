@@ -239,3 +239,43 @@ func TestWebhookTimestampTolerance(t *testing.T) {
 		t.Fatalf("outside tolerance: got %v, want ErrWebhookTimestampOutOfRange", err)
 	}
 }
+
+func TestMandatoryWebhookRecipient(t *testing.T) {
+	cfg := WebhookConfig{PlatformAuthPublicKey: publicKey(t, "platform_auth"), MerchantEncPrivateKey: privateKey(t, "merchant_enc")}
+	for _, id := range []string{"", " ", "\t\n"} {
+		cfg.APIKey = id
+		if _, err := NewWebhookReceiver(cfg); !errors.Is(err, ErrInvalidConfig) {
+			t.Fatalf("missing local recipient accepted: %v", err)
+		}
+	}
+	vec := vectors(t).Vectors.Webhook[0]
+	headers := WebhookHeadersFromHTTP(webhookHTTPHeader(vec))
+	body := []byte(vec.Body)
+	cfg.APIKey = vec.Headers[HeaderWebhookKeyID]
+	correct, err := NewWebhookReceiver(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = correct.Handle(headers, body); err != nil {
+		t.Fatal(err)
+	}
+	// Identical platform and encryption keys; only local API Key changes.
+	cfg.APIKey = "apk_other_recipient"
+	other, err := NewWebhookReceiver(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = other.Verify(headers, body); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = other.Handle(headers, body); !errors.Is(err, ErrWebhookPayloadMismatch) {
+		t.Fatalf("wrong recipient: %v", err)
+	}
+	if _, err = other.Handle(headers, append(append([]byte{}, body...), ' ')); !errors.Is(err, ErrWebhookSignatureInvalid) {
+		t.Fatalf("signature must be checked first: %v", err)
+	}
+	headers.KeyID = cfg.APIKey
+	if _, err = other.Handle(headers, body); err == nil {
+		t.Fatal("rewriting header bypassed AAD")
+	}
+}

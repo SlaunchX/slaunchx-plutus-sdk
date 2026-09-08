@@ -11,7 +11,7 @@ use SlaunchX\Plutus\Exception\WebhookSignatureException;
 use SlaunchX\Plutus\Model\WebhookEvent;
 
 /**
- * Webhook 接收处理: 先验签, 后解密。
+ * Webhook 接收处理: 先验签, 校验本地接收方 API Key, 后解密。
  *
  * 两处与 API 链的差异必须注意:
  * - 签名规范串第 4 行的 body 摘要用 **Base64**, 不是小写 hex;
@@ -137,20 +137,20 @@ final class WebhookHandler
     }
 
     /**
-     * 解密 Webhook 信封, 返回明文 JSON 字节。调用前必须已完成验签。
+     * 校验接收方并解密 Webhook 信封, 返回明文 JSON 字节。调用前必须已完成验签。
      *
      * @param array<string, string> $headers
      *
-     * @throws WebhookPayloadException AAD 不匹配、指纹不匹配或解密失败
+     * @throws WebhookPayloadException 接收方 API Key 不匹配、AAD 不匹配、指纹不匹配或解密失败
      */
     public function decrypt(array $headers, string $rawBody): string
     {
         $deliveryId = $this->requireHeader($headers, self::HEADER_DELIVERY_ID);
         $timestamp = $this->requireHeader($headers, self::HEADER_TIMESTAMP);
-        $keyId = $this->requireHeader($headers, self::HEADER_KEY_ID);
+        $this->requireRecipientApiKey($headers);
 
         $envelope = $this->parseEnvelope($rawBody);
-        $aad = self::buildAad($deliveryId, $timestamp, $keyId);
+        $aad = self::buildAad($deliveryId, $timestamp, $this->config->apiKey);
 
         try {
             return EnvelopeCodec::open(
@@ -165,7 +165,7 @@ final class WebhookHandler
     }
 
     /**
-     * 完整处理一次投递: 验签 → 解析信封 → 解密 → 与传输头交叉校验。
+     * 完整处理一次投递: 验签 → 校验接收方 API Key → 解析信封 → 解密 → 与传输头交叉校验。
      *
      * 交叉校验项 (SPEC 10.6): 明文的 `deliveryBizId` / `eventType` 与传输头一致,
      * `payloadSchemaVersion` 恰为 1。
@@ -186,7 +186,7 @@ final class WebhookHandler
         $deliveryId = $this->requireHeader($headers, self::HEADER_DELIVERY_ID);
         $eventType = $this->requireHeader($headers, self::HEADER_EVENT_TYPE);
         $timestamp = $this->requireHeader($headers, self::HEADER_TIMESTAMP);
-        $keyId = $this->requireHeader($headers, self::HEADER_KEY_ID);
+        $keyId = $this->requireRecipientApiKey($headers);
 
         $envelope = $this->parseEnvelope($rawBody);
         $plaintext = $this->decrypt($headers, $rawBody);
@@ -204,6 +204,21 @@ final class WebhookHandler
 
         /** @var array<string, mixed> $payload */
         return new WebhookEvent($deliveryId, $eventType, $timestamp, $keyId, $plaintext, $payload, $envelope);
+    }
+
+    /**
+     * 校验传输头中的接收方, 返回本地登记的 API Key 业务 ID, 不是公钥指纹。
+     *
+     * @param array<string, string> $headers
+     */
+    private function requireRecipientApiKey(array $headers): string
+    {
+        $keyId = $this->requireHeader($headers, self::HEADER_KEY_ID);
+        if (!hash_equals($this->config->apiKey, $keyId)) {
+            throw new WebhookPayloadException('Webhook 接收方 API Key 不匹配');
+        }
+
+        return $this->config->apiKey;
     }
 
     /**

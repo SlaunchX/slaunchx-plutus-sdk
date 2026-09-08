@@ -50,6 +50,9 @@ public final class WebhookHandler {
     private final EnvelopeCodec envelopeCodec = new EnvelopeCodec();
 
     private WebhookHandler(Builder b) {
+        if (b.expectedApiKeyBizId == null || b.expectedApiKeyBizId.isBlank()) {
+            throw new PlutusConfigurationException("expectedApiKeyBizId 必填");
+        }
         if (b.platformAuthPublicKeyPem == null) {
             throw new PlutusConfigurationException("Webhook 验签必须配置 platformAuthPublicKeyPem");
         }
@@ -145,10 +148,6 @@ public final class WebhookHandler {
         String keyId = require(h, WebhookHeaders.KEY_ID);
         String signature = require(h, WebhookHeaders.SIGNATURE);
 
-        if (expectedApiKeyBizId != null && !expectedApiKeyBizId.equals(keyId)) {
-            throw new PlutusWebhookException(
-                    "投递的 " + WebhookHeaders.KEY_ID + " 与本地 API Key 业务 ID 不一致");
-        }
         checkTimestamp(timestamp);
 
         String canonical = canonicalString(deliveryId, eventType, timestamp, body);
@@ -156,6 +155,9 @@ public final class WebhookHandler {
             throw new PlutusWebhookException("Webhook 验签失败, 投递已丢弃: deliveryBizId=" + deliveryId);
         }
 
+        if (!java.security.MessageDigest.isEqual(expectedApiKeyBizId.getBytes(StandardCharsets.UTF_8), keyId.getBytes(StandardCharsets.UTF_8))) {
+            throw new PlutusWebhookException("Webhook 接收方 API Key 不匹配");
+        }
         Envelope envelope;
         try {
             envelope = Envelope.fromJson(objectMapper.readTree(body)).requireWebhookShape();
@@ -169,7 +171,7 @@ public final class WebhookHandler {
                     "Webhook 信封 keyFingerprint 与商户加密公钥指纹不一致, 可能是密钥轮换未生效");
         }
 
-        EncryptionAad aad = EncryptionAad.forWebhook(deliveryId, timestamp, keyId);
+        EncryptionAad aad = EncryptionAad.forWebhook(deliveryId, timestamp, expectedApiKeyBizId);
         String plaintext;
         try {
             plaintext = envelopeCodec.openToString(envelope, merchantEncPrivateKey, aad);
@@ -294,7 +296,7 @@ public final class WebhookHandler {
         }
 
         /**
-         * 可选。设置后会校验 {@code X-SlaunchX-Key-Id} 与本地 API Key 业务 ID 相等。
+         * 必填。验签后会校验 {@code X-SlaunchX-Key-Id} 与本地 API Key 业务 ID 相等。
          *
          * @param apiKeyBizId API Key 业务 ID
          * @return 自身

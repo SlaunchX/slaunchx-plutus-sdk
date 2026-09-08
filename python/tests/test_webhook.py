@@ -25,6 +25,7 @@ from conftest import group_params, load_group
 
 
 def _receiver(public_keys, private_keys, **kwargs: Any) -> WebhookReceiver:
+    kwargs.setdefault("api_key", "apk_vector_0001")
     return WebhookReceiver(
         public_keys["platform_auth"], private_keys["merchant_enc"], **kwargs
     )
@@ -233,7 +234,7 @@ def test_payload_cross_check(public_keys, private_keys) -> None:
             forged["eventType"] = "card.transaction"
             return serialize_json(forged)
 
-    forged = _Forged(public_keys["platform_auth"], private_keys["merchant_enc"])
+    forged = _Forged(public_keys["platform_auth"], private_keys["merchant_enc"], api_key="apk_vector_0001")
     with pytest.raises(WebhookPayloadError):
         forged.handle(body, case["headers"])
 
@@ -251,3 +252,54 @@ def test_amount_stays_decimal_string() -> None:
     """金额是十进制字符串,SDK 不得解析成 float。"""
     payload = json.loads('{"amount":{"currency":"USD","amount":"25.80"}}')
     assert isinstance(payload["amount"]["amount"], str)
+
+
+@pytest.mark.parametrize("api_key", ["", " ", "\t\n"])
+def test_required_local_recipient_rejects_blank(public_keys, private_keys, api_key):
+    from slaunchx_plutus_sdk.errors import ConfigurationError
+    with pytest.raises(ConfigurationError, match="api_key"):
+        _receiver(public_keys, private_keys, api_key=api_key)
+
+
+def test_local_recipient_cannot_be_omitted(public_keys, private_keys):
+    with pytest.raises(TypeError, match="api_key"):
+        WebhookReceiver(public_keys["platform_auth"], private_keys["merchant_enc"])
+
+@pytest.mark.parametrize("entry", ["handle", "decrypt"])
+def test_shared_encryption_key_does_not_allow_other_recipient(public_keys, private_keys, entry):
+    from slaunchx_plutus_sdk.errors import WebhookEnvelopeError
+    case = load_group("webhook")[0]
+    body = case["body"].encode()
+    correct = _receiver(public_keys, private_keys)
+    parts = correct.verify(body, case["headers"])
+    assert correct.decrypt(body, parts).decode() == case["expectedPlaintext"]
+    other = _receiver(public_keys, private_keys, api_key="apk_other_recipient")
+    with pytest.raises((WebhookSignatureError, WebhookEnvelopeError), match="API Key"):
+        if entry == "handle": other.handle(body, case["headers"])
+        else: other.decrypt(body, parts)
+
+
+def test_signature_checked_before_recipient(public_keys, private_keys):
+    case = load_group("webhook")[0]
+    with pytest.raises(WebhookSignatureError, match="验签失败"):
+        _receiver(public_keys, private_keys, api_key="apk_other").handle(case["body"].encode() + b" ", case["headers"])
+
+
+def test_rewriting_header_to_other_local_recipient_fails_aad(public_keys, private_keys):
+    from slaunchx_plutus_sdk.errors import WebhookEnvelopeError
+    case = load_group("webhook")[0]
+    body = case["body"].encode()
+    other = _receiver(public_keys, private_keys, api_key="apk_other_recipient")
+    headers = dict(case["headers"], **{"X-SlaunchX-Key-Id": "apk_other_recipient"})
+    with pytest.raises(WebhookEnvelopeError):
+        other.handle(body, headers)
+
+
+def test_direct_decrypt_checks_recipient_before_loading_private_key(public_keys, private_keys):
+    from slaunchx_plutus_sdk.errors import WebhookEnvelopeError
+    case = load_group("webhook")[0]
+    body = case["body"].encode()
+    parts = _receiver(public_keys, private_keys).verify(body, case["headers"])
+    receiver = WebhookReceiver(public_keys["platform_auth"], api_key="apk_other_recipient")
+    with pytest.raises(WebhookEnvelopeError, match="API Key"):
+        receiver.decrypt(body, parts)

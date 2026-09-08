@@ -29,8 +29,35 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** 向量组 webhook:2 例,验签 + 信封形状 + AAD 重建 + 解密比对。 */
 class WebhookVectorTest {
+    @Test void localRecipientIsMandatory() {
+        for (String id : new String[]{null, "", " ", "\t\n"}) {
+            assertThrows(com.slaunchx.plutus.sdk.exception.PlutusConfigurationException.class,
+                () -> WebhookHandler.builder().platformAuthPublicKeyPem(TestVectors.publicKeyPem("platform_auth"))
+                    .merchantEncPrivateKeyPem(TestVectors.privateKeyPem("merchant_enc"))
+                    .expectedApiKeyBizId(id).build());
+        }
+    }
 
-    private static final WebhookHandler HANDLER = WebhookHandler.builder()
+    @Test void sharedEncryptionKeyDoesNotAllowOtherRecipient() {
+        var vector = vectors().get(0);
+        var headers = headersOf(vector);
+        byte[] body = vector.get("body").asText().getBytes(StandardCharsets.UTF_8);
+        assertEquals(vector.get("expectedPlaintext").asText(), HANDLER.handle(headers, body).plaintext());
+        var other = WebhookHandler.builder().platformAuthPublicKeyPem(TestVectors.publicKeyPem("platform_auth"))
+            .merchantEncPrivateKeyPem(TestVectors.privateKeyPem("merchant_enc"))
+            .expectedApiKeyBizId("apk_other_recipient").build();
+        assertEquals(true, other.verifySignature(headers, body));
+        assertEquals("Webhook 接收方 API Key 不匹配", assertThrows(PlutusWebhookException.class, () -> other.handle(headers, body)).getMessage());
+        var badSignature = new LinkedHashMap<>(headers);
+        badSignature.put(WebhookHeaders.SIGNATURE, "invalid");
+        assertEquals(true, assertThrows(PlutusWebhookException.class, () -> other.handle(badSignature, body)).getMessage().contains("验签失败"));
+        var changedHeader = new LinkedHashMap<>(headers);
+        changedHeader.put(WebhookHeaders.KEY_ID,"apk_other_recipient");
+        assertThrows(PlutusWebhookException.class, () -> other.handle(changedHeader,body));
+    }
+
+
+    private static final WebhookHandler HANDLER = WebhookHandler.builder().expectedApiKeyBizId("apk_vector_0001")
             .platformAuthPublicKeyPem(TestVectors.publicKeyPem("platform_auth"))
             .merchantEncPrivateKeyPem(TestVectors.privateKeyPem("merchant_enc"))
             .expectedApiKeyBizId("apk_vector_0001")
@@ -189,7 +216,7 @@ class WebhookVectorTest {
         byte[] body = vector.get("body").asText().getBytes(StandardCharsets.UTF_8);
         Map<String, String> headers = headersOf(vector);
 
-        WebhookHandler strict = WebhookHandler.builder()
+        WebhookHandler strict = WebhookHandler.builder().expectedApiKeyBizId("apk_vector_0001")
                 .platformAuthPublicKeyPem(TestVectors.publicKeyPem("platform_auth"))
                 .merchantEncPrivateKeyPem(TestVectors.privateKeyPem("merchant_enc"))
                 .timestampTolerance(Duration.ofSeconds(60))

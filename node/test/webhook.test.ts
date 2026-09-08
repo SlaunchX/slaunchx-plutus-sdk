@@ -203,6 +203,7 @@ describe('webhook 负向', () => {
     expect(delivery.payload.deliveryBizId).toBe(forgedHeaders['X-SlaunchX-Delivery-Id']);
 
     const custom = new WebhookHandler({
+      apiKeyBizId: "apk_vector_0001",
       platformAuthPublicKey: platformAuth.publicKeyPem,
       merchantEncPrivateKey: merchantEnc.privateKeyPem,
     });
@@ -243,3 +244,24 @@ describe('webhook 负向', () => {
 function signWith(canonical: string): string {
   return signCanonicalString(canonical, loadPrivateKey(platformAuth.privateKeyPem));
 }
+
+
+describe('mandatory local webhook recipient', () => {
+  const vector = vectors.vectors.webhook[0]!;
+  const body = Buffer.from(vector.body);
+  it('rejects omitted local API Key', () => {
+    // @ts-expect-error Missing required config for JavaScript runtime regression.
+    expect(() => new WebhookHandler({platformAuthPublicKey:platformAuth.publicKeyPem,merchantEncPrivateKey:merchantEnc.privateKeyPem})).toThrow('apiKeyBizId');
+  });
+  it.each(['', ' ', '\t\n'])('rejects blank %j', apiKeyBizId => expect(() => handler({apiKeyBizId})).toThrow('apiKeyBizId'));
+  it('rejects another API Key using identical encryption key material', () => {
+    expect(handler().handle(body,vector.headers).plaintext).toBe(vector.expectedPlaintext);
+    expect(() => handler({apiKeyBizId:'apk_other_recipient'}).handle(body,vector.headers)).toThrow('configured API key');
+  });
+  it('checks signature before recipient', () => {
+    expect(() => handler({apiKeyBizId:'apk_other_recipient'}).handle(Buffer.concat([body,Buffer.from(' ')]),vector.headers)).toThrow('signature verification failed');
+  });
+  it('rejects rewriting the header to the local API Key', () => {
+    expect(() => handler({apiKeyBizId:'apk_other_recipient'}).handle(body,{...vector.headers,'X-SlaunchX-Key-Id':'apk_other_recipient'})).toThrow();
+  });
+});
