@@ -41,7 +41,7 @@ def test_client_product_response(private_keys, public_keys, mode):
             headers["X-Request-Id"] = {"present":request_id,"wrong":"wrong-id","empty":""}[mode]
         if mode == "unsigned": del headers["X-Response-Signature"]
         return SimpleNamespace(status_code=200, headers=headers, content=body + (b" " if mode == "tamper" else b""))
-    config = PlutusConfig("https://example.test", "test-key", merchant_auth_private_key=private_keys["merchant_auth"], platform_auth_public_key=public_keys["platform_auth"], protocol_profile=PROFILE)
+    config = PlutusConfig("https://example.test", "test-key", merchant_auth_private_key=private_keys["merchant_auth"], platform_auth_public_key=public_keys["platform_auth"], protocol_profile=PROFILE, api_version="1")
     client = PlutusClient(config, session=SimpleNamespace(request=send))
     def invoke(): return client.post("/test", query="q=a+b&tilde=~&star=%2A", json_body={"ok":True}, idempotency_key="operation-1")
     if mode in ("missing","present"):
@@ -53,15 +53,36 @@ def test_client_product_response(private_keys, public_keys, mode):
 
 @pytest.mark.parametrize("headers,request_id", [({"x-request-id":"a","X-Request-Id":"b"},None), ({"x-request-id":"a"},"b"), ({"x-request-id":"a\nb"},None)])
 def test_product_rejects_ambiguous_ids(private_keys, headers, request_id):
-    config = PlutusConfig("https://example.test", "key", merchant_auth_private_key=private_keys["merchant_auth"], verify_response_signature=False, protocol_profile=PROFILE)
+    config = PlutusConfig("https://example.test", "key", merchant_auth_private_key=private_keys["merchant_auth"], verify_response_signature=False, protocol_profile=PROFILE, api_version="1")
     with pytest.raises(ConfigurationError):
         PlutusClient(config).get("/test", headers=headers, request_id=request_id)
 
 def test_profiles_do_not_fall_back(private_keys, public_keys):
-    signed = RequestSigner(private_keys["merchant_auth"], "key").sign("GET", "/test")
+    signed = RequestSigner(private_keys["merchant_auth"], "key", api_version="1").sign("GET", "/test")
     assert len(signed.canonical_string.split("\n")) == 8
     body = b"{}"
     canonical = "\n".join(["id", "200", "application/json", "1788836400000", hashlib.sha256(body).hexdigest()])
     with pytest.raises(ResponseSignatureError):
         ResponseVerifier(public_keys["platform_auth"]).verify(request_canonical_sha256=signed.canonical_sha256, api_version="1", external_path="/test", http_status=200, headers={"X-Request-Id":"id", "Content-Type":"application/json", "X-Response-Timestamp":"1788836400000", "X-Response-Signature":sign_canonical_string(private_keys["platform_auth"], canonical)}, body=body, sent_request_id="id")
-    with pytest.raises(ConfigurationError): PlutusConfig("https://example.test", "key", protocol_profile="unknown")
+    with pytest.raises(ConfigurationError): PlutusConfig("https://example.test", "key", protocol_profile="unknown", api_version="1")
+
+
+def test_api_version_is_required(private_keys):
+    with pytest.raises(TypeError, match="api_version"):
+        PlutusConfig("https://example.test", "key")
+    with pytest.raises(TypeError, match="api_version"):
+        RequestSigner(private_keys["merchant_auth"], "key")
+
+@pytest.mark.parametrize("version", ["", " ", "\t\n"])
+def test_blank_api_version_is_rejected(version, private_keys):
+    with pytest.raises(ConfigurationError, match="api_version"):
+        PlutusConfig("https://example.test", "key", api_version=version)
+    with pytest.raises(ConfigurationError, match="api_version"):
+        RequestSigner(private_keys["merchant_auth"], "key", api_version=version)
+
+@pytest.mark.parametrize("version", ["1", "2"])
+def test_explicit_api_version_is_signed(version, private_keys):
+    config = PlutusConfig("https://example.test", "key", api_version=version)
+    signed = RequestSigner(private_keys["merchant_auth"], "key", config.api_version).sign("GET", "/test")
+    assert signed.headers["X-API-VERSION"] == version
+    assert signed.canonical_string.split("\n")[5] == version

@@ -78,6 +78,7 @@ go env -w GOPRIVATE=github.com/slaunchx/*
 
 ```go
 client, err := plutus.New(plutus.Config{
+    APIVersion: "1",
     BaseURL:                   "https://consumer-api.slaunchx.example",
     APIKey:                    "apk_xxx",
     MerchantAuthPrivateKeyPEM: merchantAuthPrivPEM,
@@ -101,6 +102,7 @@ SDK 对外部路径签名,源站地址或拼错的前缀会导致签名规范串
 ```go
 // 正确: BaseURL 只到 host, Request.Path 是外部路径, SDK 对 "/card-products/..." 签名。
 client, err := plutus.New(plutus.Config{
+    APIVersion: "1",
     BaseURL: "https://consumer-api.slaunchx.example",
     // ...
 })
@@ -114,6 +116,7 @@ resp, err := client.Do(ctx, plutus.Request{
 ```go
 // 错误: BaseURL 指向源站并拼了内部前缀, 签名必然失败。
 client, err := plutus.New(plutus.Config{
+    APIVersion: "1",
     BaseURL: "https://origin.internal.example/prometheus/api/v1/consumer",
     // ...
 })
@@ -377,7 +380,7 @@ receiver, err := plutus.NewWebhookReceiver(plutus.WebhookConfig{
 | --- | --- | --- | --- |
 | `BaseURL` | `string` | 必填 | 商户 API 基地址,必须是对外 CONSUMER API 域名,不含链/版本/门户前缀,不能是源站地址或自行拼接的 `/prometheus`、`/api/v1/consumer` 前缀 |
 | `APIKey` | `string` | 必填 | API Key 业务 ID,即 `X-Api-Key` |
-| `APIVersion` | `string` | `"1"` | `X-API-VERSION`,参与签名 |
+| `APIVersion` | `string` | 无（必填） | `X-API-VERSION`,参与签名 |
 | `MerchantAuthPrivateKeyPEM` / `MerchantAuthPrivateKey` | `[]byte` / `*rsa.PrivateKey` | 必填 | 请求签名私钥 |
 | `PlatformAuthPublicKeyPEM` / `PlatformAuthPublicKey` | `[]byte` / `*rsa.PublicKey` | 验签开启时必填 | 响应与 Webhook 验签公钥 |
 | `PlatformEncPublicKeyPEM` / `PlatformEncPublicKey` | `[]byte` / `*rsa.PublicKey` | 加密端点必填 | 请求加密公钥 |
@@ -540,3 +543,5 @@ go test ./...
 的业务失败,以及缺签名头的三种情形。
 
 向量中的 RSA 私钥仅用于测试,绝不可用于任何真实环境。
+
+`X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。

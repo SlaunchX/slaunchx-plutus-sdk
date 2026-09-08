@@ -31,6 +31,7 @@ $pem = static function (string $name) use ($required): string {
 
 try {
     $config = new PlutusConfig(
+    apiVersion: '1',
         baseUrl: $required('SLAUNCHX_BASE_URL'),
         apiKey: $required('SLAUNCHX_API_KEY'),
         merchantAuthPrivateKeyPem: $pem('MERCHANT_AUTH_PRIVATE_PEM_FILE'),

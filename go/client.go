@@ -31,7 +31,7 @@ type Config struct {
 	BaseURL string
 	// APIKey 是 API Key 业务 ID, 对应 X-Api-Key。
 	APIKey string
-	// APIVersion 对应 X-API-VERSION, 留空时取 DefaultAPIVersion ("1")。
+	// APIVersion 对应 X-API-VERSION, 必须显式填写；当前 product 填 "1"。
 	APIVersion string
 
 	// MerchantAuthPrivateKeyPEM / MerchantAuthPrivateKey 是商户认证私钥, 用于请求签名。必填。
@@ -117,6 +117,9 @@ func New(cfg Config) (*Client, error) {
 	if strings.TrimSpace(cfg.APIKey) == "" {
 		return nil, fmt.Errorf("%w: api key is required", ErrInvalidConfig)
 	}
+	if strings.TrimSpace(cfg.APIVersion) == "" {
+		return nil, fmt.Errorf("%w: api version is required", ErrInvalidConfig)
+	}
 	authKey := cfg.MerchantAuthPrivateKey
 	if authKey == nil {
 		if len(cfg.MerchantAuthPrivateKeyPEM) == 0 {
@@ -141,9 +144,6 @@ func New(cfg Config) (*Client, error) {
 		nonceFunc:             cfg.NonceFunc,
 		nowFunc:               cfg.NowFunc,
 		strictEncryptedRoute:  cfg.StrictEncryptedRouteValidation,
-	}
-	if c.apiVersion == "" {
-		c.apiVersion = DefaultAPIVersion
 	}
 	if c.httpClient == nil {
 		c.httpClient = &http.Client{Timeout: 30 * time.Second}

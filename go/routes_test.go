@@ -57,7 +57,7 @@ func TestIsKnownEncryptedRoute(t *testing.T) {
 // TestPrepareUnknownEncryptedRouteDefaultNonStrict 覆盖默认 (非严格) 模式:
 // 未知 routeTemplate 不阻断请求, Prepare 不返回 error。
 func TestPrepareUnknownEncryptedRouteDefaultNonStrict(t *testing.T) {
-	client, err := New(Config{
+	client, err := New(Config{APIVersion: "1",
 		BaseURL:                "https://example.com",
 		APIKey:                 "apk",
 		MerchantAuthPrivateKey: privateKey(t, "merchant_auth"),
@@ -88,7 +88,7 @@ func TestPrepareUnknownEncryptedRouteDefaultNonStrict(t *testing.T) {
 // TestPrepareUnknownEncryptedRouteStrict 覆盖严格模式: 未知 routeTemplate 返回
 // 满足 errors.Is(err, ErrUnknownEncryptedRoute) 的 error; 已知路由不受影响。
 func TestPrepareUnknownEncryptedRouteStrict(t *testing.T) {
-	client, err := New(Config{
+	client, err := New(Config{APIVersion: "1",
 		BaseURL:                        "https://example.com",
 		APIKey:                         "apk",
 		MerchantAuthPrivateKey:         privateKey(t, "merchant_auth"),

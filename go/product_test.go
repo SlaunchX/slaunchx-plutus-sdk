@@ -93,7 +93,7 @@ func TestProductClientCompatibility(t *testing.T) {
 				_, _ = w.Write(body)
 			}))
 			defer server.Close()
-			client, err := New(Config{BaseURL: server.URL, APIKey: "key", MerchantAuthPrivateKey: privateKey(t, "merchant_auth"), PlatformAuthPublicKey: publicKey(t, "platform_auth"), ProtocolProfile: ProductV1})
+			client, err := New(Config{APIVersion: "1", BaseURL: server.URL, APIKey: "key", MerchantAuthPrivateKey: privateKey(t, "merchant_auth"), PlatformAuthPublicKey: publicKey(t, "platform_auth"), ProtocolProfile: ProductV1})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -117,7 +117,7 @@ func TestProductClientCompatibility(t *testing.T) {
 }
 
 func TestProductRejectsAmbiguousIDs(t *testing.T) {
-	client, err := New(Config{BaseURL: "https://example.test", APIKey: "key", MerchantAuthPrivateKey: privateKey(t, "merchant_auth"), DisableResponseSignatureVerification: true, ProtocolProfile: ProductV1})
+	client, err := New(Config{APIVersion: "1", BaseURL: "https://example.test", APIKey: "key", MerchantAuthPrivateKey: privateKey(t, "merchant_auth"), DisableResponseSignatureVerification: true, ProtocolProfile: ProductV1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,5 +156,25 @@ func TestProductNoProtocolFallback(t *testing.T) {
 	}
 	if _, err := CanonicalizeQueryForProfile("", ProtocolProfile("unknown")); err == nil {
 		t.Fatal("accepted unknown profile")
+	}
+}
+
+func TestRequiredAPIVersion(t *testing.T) {
+	cfg := Config{BaseURL: "https://example.test", APIKey: "key", MerchantAuthPrivateKey: privateKey(t, "merchant_auth"), PlatformAuthPublicKey: publicKey(t, "platform_auth")}
+	for _, version := range []string{"", " ", "\t\n"} {
+		cfg.APIVersion = version
+		if _, err := New(cfg); err == nil || !strings.Contains(err.Error(), "api version") {
+			t.Fatalf("blank version %q: %v", version, err)
+		}
+	}
+	for _, version := range []string{"1", "2"} {
+		cfg.APIVersion = version
+		client, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if client.apiVersion != version {
+			t.Fatalf("configured version lost: %s", client.apiVersion)
+		}
 	}
 }

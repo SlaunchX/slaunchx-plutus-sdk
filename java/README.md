@@ -82,6 +82,7 @@ mvn clean install -DskipTests=false
 import com.slaunchx.plutus.sdk.*;
 
 PlutusConfig config = PlutusConfig.builder()
+    .apiVersion("1")
         .baseUrl("https://<consumer-api-host>")
         .apiKey("apk_xxxxxxxx")
         .merchantAuthPrivateKeyPem(readPem("merchant_auth_private.pem"))   // 对请求签名
@@ -323,7 +324,7 @@ System.out.println("X-Signature 的值: " + signed.signatureBase64());
 | --- | --- | --- | --- | --- |
 | `baseUrl` | `String` | 无 | 使用 `PlutusClient` 时必填 | 商户 API 基地址,**必须是对外 CONSUMER API 域名**,不能是源站地址,也不能自行拼接 `/prometheus`、`/api/v1/consumer` 前缀;不含路径,末尾斜杠自动去除。详见下方示例 |
 | `apiKey` | `String` | 无 | 是 | API Key 业务 ID,写入 `X-Api-Key` |
-| `apiVersion` | `String` | `"1"` | 否 | 写入 `X-API-VERSION` 并参与签名;当前只服务 `1` |
+| `apiVersion` | `String` | 无（必填） | 是 | 写入 `X-API-VERSION` 并参与签名;当前只服务 `1` |
 | `merchantAuthPrivateKeyPem` | `String` | 无 | 是 | `merchant_auth` PKCS#8 私钥,用于请求签名 |
 | `platformAuthPublicKeyPem` | `String` | 无 | 启用响应验签时必填 | `platform_auth` SPKI 公钥,用于响应与 Webhook 验签 |
 | `merchantEncPrivateKeyPem` | `String` | 无 | 需要解密时必填 | `merchant_enc` PKCS#8 私钥,用于敏感响应与 Webhook 解密 |
@@ -348,6 +349,7 @@ DER 编码规范;不满足即抛 `PlutusConfigurationException`。
 ```java
 // 正确: baseUrl 是对外 CONSUMER API 域名, path 传外部路径, SDK 对外部路径签名
 PlutusConfig.builder()
+    .apiVersion("1")
         .baseUrl("https://<consumer-api-host>")
         .build();
 client.call(PlutusRequest.post("/card-products/10010106/shared/cards/create")...);
@@ -355,6 +357,7 @@ client.call(PlutusRequest.post("/card-products/10010106/shared/cards/create")...
 
 // 错误: baseUrl 配成源站地址并自行拼接边缘/源站前缀, 签名必然失败
 PlutusConfig.builder()
+    .apiVersion("1")
         .baseUrl("https://origin-host/prometheus/api/v1/consumer")
         .build();
 ```
@@ -598,3 +601,5 @@ python3 ../shared/tools/verify_vectors.py --verbose
 - 响应验签失败即安全事故:丢弃响应体,不要把未验证的数据交给业务代码。
 - Webhook 必须按 `deliveryBizId` 去重,并交叉校验明文的 `deliveryBizId` / `eventType` 与
   `payloadSchemaVersion`(SDK 已内建该校验)。
+
+`X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。

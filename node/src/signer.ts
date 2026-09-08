@@ -19,7 +19,7 @@ import { loadPrivateKey, loadPublicKey, type KeyInput } from './keys.js';
 /** `X-Signature-Algorithm` 的字面量取值。 */
 export const SIGNATURE_ALGORITHM = 'RSA-SHA256';
 
-/** 默认 API 契约主版本。 */
+/** 兼容保留的版本常量；不会作为配置默认值。 */
 export const DEFAULT_API_VERSION = '1';
 
 /** query 入参:原始串或参数对象。对象会按 RFC 3986 编码。 */
@@ -102,8 +102,8 @@ export interface RequestSignerOptions {
   apiKey: string;
   /** 商户认证私钥(`merchant_auth`,PKCS#8 PEM) */
   merchantAuthPrivateKey: KeyInput;
-  /** API 契约主版本,默认 `1` */
-  apiVersion?: string;
+  /** API 契约主版本,必填；当前 product 填 `1` */
+  apiVersion: string;
   /** nonce 生成器,默认 {@link generateNonce} */
   nonceGenerator?: () => string;
   /** 毫秒时钟,默认 `Date.now` */
@@ -119,7 +119,7 @@ export interface RequestSignerOptions {
  * 摘要计算与网络发送;否则两次序列化的差异会导致 `API.SIGNATURE_INVALID`。
  *
  * @example
- * const signer = new RequestSigner({ apiKey, merchantAuthPrivateKey: pem });
+ * const signer = new RequestSigner({ apiVersion: '1', apiKey, merchantAuthPrivateKey: pem });
  * const body = Buffer.from(JSON.stringify({ quantity: 2 }), 'utf8');
  * const signed = signer.sign({ method: 'POST', path: '/card-products/cards/freeze', body });
  * await fetch(url, { method: 'POST', headers: signed.headers, body });
@@ -136,13 +136,16 @@ export class RequestSigner {
     if (!options.apiKey) {
       throw new PlutusRequestError('apiKey is required');
     }
+    if (typeof options.apiVersion !== 'string' || !options.apiVersion.trim()) {
+      throw new PlutusRequestError('apiVersion is required');
+    }
     this.protocolProfile = resolveProfile(options.protocolProfile);
     this.apiKey = options.apiKey;
     this.privateKey = loadPrivateKey(options.merchantAuthPrivateKey, {
       strict: options.strictKeyValidation !== false,
       label: 'merchant_auth',
     });
-    this.apiVersion = options.apiVersion ?? DEFAULT_API_VERSION;
+    this.apiVersion = options.apiVersion;
     this.nonceGenerator = options.nonceGenerator ?? (() => generateNonce());
     this.now = options.now ?? (() => Date.now());
   }

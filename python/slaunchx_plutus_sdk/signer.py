@@ -13,7 +13,6 @@ from typing import Dict, Iterable, Mapping, Optional, Sequence, Tuple, Union
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
-from .config import DEFAULT_API_VERSION
 from .protocol import ProtocolProfile, resolve_profile, product_canonical_query, product_request_id
 from .errors import CanonicalQueryError, ConfigurationError
 
@@ -292,7 +291,7 @@ class RequestSigner:
         self,
         private_key: rsa.RSAPrivateKey,
         api_key: str,
-        api_version: str = DEFAULT_API_VERSION,
+        api_version: str,
         protocol_profile=ProtocolProfile.REQUEST_BOUND_V1,
     ) -> None:
         """
@@ -300,6 +299,8 @@ class RequestSigner:
         :param api_key: API Key 业务 ID
         :param api_version: 契约主版本,填入 ``X-API-VERSION``
         """
+        if not isinstance(api_version, str) or not api_version.strip():
+            raise ConfigurationError("api_version 必须显式填写且不能为空")
         self._private_key = private_key
         self._api_key = api_key
         self._api_version = api_version

@@ -155,6 +155,7 @@ def config(keys) -> PlutusConfig:
         platform_auth_public_key=keys["platform_auth"]["publicKeyPem"],
         platform_enc_public_key=keys["platform_enc"]["publicKeyPem"],
         merchant_enc_private_key=keys["merchant_enc"]["privateKeyPem"],
+        api_version="1",
     )
 
 

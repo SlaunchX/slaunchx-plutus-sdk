@@ -71,6 +71,7 @@ function parse(body: string): ApiResponse {
 
 function clientWith(status: number, body: string): PlutusClient {
   const config: PlutusConfig = {
+    apiVersion: '1',
     baseUrl: BASE_URL,
     apiKey: 'apk_vector_0001',
     keys: { merchantAuthPrivateKey: merchantAuth.privateKeyPem },

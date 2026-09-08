@@ -67,6 +67,7 @@ use SlaunchX\Plutus\PlutusConfig;
 use SlaunchX\Plutus\ProtocolProfile;
 
 $config = new PlutusConfig(
+    apiVersion: '1',
     protocolProfile: ProtocolProfile::PRODUCT_V1,
     baseUrl: 'https://consumer-api.example.com',
     apiKey: 'apk_xxxxxxxxxxxx',
@@ -286,7 +287,7 @@ $signature = RequestSigner::signCanonicalString($canonicalString, $privateKey);
 | 3 | 规范化 query | 未按「RFC 3986 全量百分号编码、按 `key` 再 `value` 字节序排序」处理;无 query 时是空串,不是省略该行 |
 | 4 | 时间戳 | 不是 Unix **毫秒**(常见错误是秒级 10 位而非 13 位);与 `X-Timestamp` 头不一致 |
 | 5 | nonce | 与 `X-Nonce` 头不一致;不满足 `^[A-Za-z0-9._~-]{16,128}$` |
-| 6 | apiVersion | 与 `X-API-VERSION` 头不一致(当前恒为 `"1"`) |
+| 6 | apiVersion | 与 `X-API-VERSION` 头不一致(当前 product 填 `"1"`) |
 | 7 | 幂等键 | **无幂等键时该行必须是空串,而不是整行省略**;发了 `X-Idempotency-Key` 却不参与签名 |
 | 8 | body 摘要 | 对**实际要发送的字节**求 SHA-256 而不是对业务对象重新序列化一次(重新序列化可能改变字段顺序/转义,产生不同字节);`GET` / `HEAD` / `DELETE` **无论是否带 body 都强制用空 body 摘要**(`RequestSigner::EMPTY_BODY_SHA256`),不能对其 body 实际求哈希 |
 
@@ -414,7 +415,7 @@ SDK 默认发送规范化后的 Query（`sendCanonicalQuery=true`），URL Query
 | `platformEncPublicKeyPem` | `?string` | `null` | 平台加密公钥;请求加密所需 |
 | `platformEncKeyId` | `?string` | `null` | 平台加密公钥指纹;为空时从 PEM 推导 |
 | `platformAuthKeyId` | `?string` | `null` | 平台认证公钥指纹;非空时与 `X-Platform-Signing-Key-Id` 比对 |
-| `apiVersion` | `string` | `'1'` | `X-API-VERSION` 的值,参与签名 |
+| `apiVersion` | `string` | 无（必填） | `X-API-VERSION` 的值,参与签名 |
 | `verifyResponseSignature` | `bool` | `true` | 是否校验响应签名 |
 | `requireSignatureOnErrorResponses` | `bool` | `false` | 非 2xx 缺签名头时是否也强制验签;2xx 缺签名头一律报错,不受本开关影响 |
 | `throwOnErrorStatus` | `bool` | `true` | 响应判定为失败时抛出类型化异常,而非返回响应对象 |
@@ -529,3 +530,5 @@ RFC 8017 的 EME-OAEP 编解码与 MGF1(`Support\Oaep`),label 取空串。该路
 
 AES-256-GCM 使用 `openssl_encrypt` / `openssl_decrypt`,密文布局固定为
 `IV(12) || 密文 || 认证标签(16)`。
+
+`X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。

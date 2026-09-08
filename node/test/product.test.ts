@@ -29,7 +29,7 @@ describe('product protocol', () => {
       if (mode === 'unsigned') delete responseHeaders['X-Response-Signature'];
       return new Response(body + (mode === 'tamper' ? ' ' : ''), {status:200, headers:responseHeaders});
     }) as typeof globalThis.fetch;
-    const client = new PlutusClient({baseUrl:'https://example.test', apiKey:'key', keys, protocolProfile:profile, fetch});
+    const client = new PlutusClient({apiVersion:'1',baseUrl:'https://example.test', apiKey:'key', keys, protocolProfile:profile, fetch});
     const invoke = () => client.request({method:'POST', path:'/test', query:'q=a+b&tilde=~&star=%2A', body:{ok:true}, idempotencyKey:'operation-1'});
     if (['missing','present'].includes(mode)) {
       expect((await invoke()).signatureVerified).toBe(true);
@@ -37,15 +37,34 @@ describe('product protocol', () => {
     } else await expect(invoke()).rejects.toThrow();
   });
   it('rejects ambiguous IDs before sending', async () => {
-    const client = new PlutusClient({baseUrl:'https://example.test', apiKey:'key', keys, protocolProfile:profile});
+    const client = new PlutusClient({apiVersion:'1',baseUrl:'https://example.test', apiKey:'key', keys, protocolProfile:profile});
     for (const headers of [{'x-request-id':'a','X-Request-Id':'b'}, {'X-Request-Id':'a\nb'}] as Record<string,string>[]) {
       await expect(client.request({method:'GET',path:'/test',headers})).rejects.toThrow();
     }
   });
   it('default protocol does not accept product signatures', () => {
-    const request = new RequestSigner({apiKey:'key',merchantAuthPrivateKey:keys.merchantAuthPrivateKey}).sign({method:'GET',path:'/test'});
+    const request = new RequestSigner({ apiVersion: '1',apiKey:'key',merchantAuthPrivateKey:keys.merchantAuthPrivateKey}).sign({method:'GET',path:'/test'});
     expect(request.canonicalString.split('\n')).toHaveLength(8);
     const body = '{}';
     expect(() => new ResponseVerifier({platformAuthPublicKey:keys.platformAuthPublicKey}).verify({requestCanonicalSha256:request.requestCanonicalSha256,apiVersion:'1',externalPath:'/test',status:200,body:Buffer.from(body),sentRequestId:'id',headers:{'X-Request-Id':'id','Content-Type':'application/json','X-Response-Timestamp':'1788836400000','X-Response-Signature':signed(['id','200','application/json','1788836400000',hash(body)].join('\n'))}})).toThrow();
+  });
+});
+
+
+describe('required API version', () => {
+  it('rejects omitted version in config and signer', () => {
+    // @ts-expect-error Required field intentionally omitted to check JavaScript callers.
+    expect(() => new PlutusClient({baseUrl:'https://example.test', apiKey:'key', keys})).toThrow('apiVersion');
+    // @ts-expect-error Required field intentionally omitted.
+    expect(() => new RequestSigner({apiKey:'key', merchantAuthPrivateKey:keys.merchantAuthPrivateKey})).toThrow('apiVersion');
+  });
+  it.each(['', ' ', '\t\n'])('rejects blank version %j', apiVersion => {
+    expect(() => new PlutusClient({baseUrl:'https://example.test', apiKey:'key', keys, apiVersion})).toThrow('apiVersion');
+    expect(() => new RequestSigner({apiKey:'key', merchantAuthPrivateKey:keys.merchantAuthPrivateKey, apiVersion})).toThrow('apiVersion');
+  });
+  it.each(['1','2'])('signs configured version %s', apiVersion => {
+    const request = new RequestSigner({apiKey:'key', merchantAuthPrivateKey:keys.merchantAuthPrivateKey, apiVersion}).sign({method:'GET',path:'/test'});
+    expect(request.headers['X-API-VERSION']).toBe(apiVersion);
+    expect(request.canonicalString.split('\n')[5]).toBe(apiVersion);
   });
 });

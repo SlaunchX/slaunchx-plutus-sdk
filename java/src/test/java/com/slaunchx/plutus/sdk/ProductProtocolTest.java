@@ -17,6 +17,19 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProductProtocolTest {
+    @Test void apiVersionIsRequired() {
+        assertThrows(com.slaunchx.plutus.sdk.exception.PlutusConfigurationException.class,
+            () -> PlutusConfig.builder().baseUrl("https://example.test").apiKey("key")
+                .merchantAuthPrivateKeyPem(TestVectors.privateKeyPem("merchant_auth")).build());
+        for (String version : new String[]{"", " ", "\t\n"}) {
+            assertThrows(com.slaunchx.plutus.sdk.exception.PlutusConfigurationException.class,
+                () -> config("https://example.test").apiVersion(version).build());
+        }
+        for (String version : new String[]{"1", "2"}) {
+            assertEquals(version, config("https://example.test").apiVersion(version).build().apiVersion());
+        }
+    }
+
     @Test void queries() throws Exception {
         var vectors = TestVectors.MAPPER.readTree(Files.readString(Path.of("../shared/product-query-vectors.json")));
         for (var pair : vectors.get("valid")) {
@@ -26,7 +39,7 @@ class ProductProtocolTest {
     }
 
     private PlutusConfig.Builder config(String url) {
-        return PlutusConfig.builder().baseUrl(url).apiKey("key")
+        return PlutusConfig.builder().apiVersion("1").baseUrl(url).apiKey("key")
                 .merchantAuthPrivateKeyPem(TestVectors.privateKeyPem("merchant_auth"))
                 .platformAuthPublicKeyPem(TestVectors.publicKeyPem("platform_auth"))
                 .protocolProfile(ProtocolProfile.PRODUCT_V1);

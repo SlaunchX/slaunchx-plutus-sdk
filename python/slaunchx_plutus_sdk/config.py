@@ -25,7 +25,7 @@ __all__ = [
     "MAX_PLAINTEXT_BYTES",
 ]
 
-#: 当前唯一受支持的契约主版本
+#: 兼容保留的版本常量；不会作为配置默认值
 DEFAULT_API_VERSION = "1"
 
 #: 信封明文上限,超出即拒绝(SPEC 8.2)
@@ -129,6 +129,8 @@ class PlutusConfig:
     base_url: str
     #: API Key 业务 ID,填入 ``X-Api-Key``
     api_key: str
+    #: 必填契约主版本,填入 ``X-API-VERSION``；当前 product 填 ``"1"``
+    api_version: str
     #: 商户认证私钥,对请求规范串签名
     merchant_auth_private_key: Optional[PrivateKeySource] = None
     #: 平台认证公钥,验证响应签名与 Webhook 签名
@@ -137,8 +139,6 @@ class PlutusConfig:
     platform_enc_public_key: Optional[PublicKeySource] = None
     #: 商户加密私钥,解密敏感响应与 Webhook
     merchant_enc_private_key: Optional[PrivateKeySource] = None
-    #: 契约主版本,填入 ``X-API-VERSION``,当前恒为 ``"1"``
-    api_version: str = DEFAULT_API_VERSION
     #: requests 超时,秒;可为 ``(connect, read)`` 二元组
     timeout: Union[float, tuple] = 30.0
     #: 是否验证响应签名。默认强制,仅在联调阶段可临时关闭

@@ -232,7 +232,7 @@ public final class PlutusConfig {
 
         private String baseUrl;
         private String apiKey;
-        private String apiVersion = "1";
+        private String apiVersion;
         private String merchantAuthPrivateKeyPem;
         private String platformAuthPublicKeyPem;
         private String merchantEncPrivateKeyPem;
@@ -275,7 +275,7 @@ public final class PlutusConfig {
         }
 
         /**
-         * @param apiVersion 契约主版本,默认 {@code 1};参与签名,不可为空
+         * @param apiVersion 契约主版本,必填；当前 product 填 {@code 1};参与签名,不可为空
          * @return 自身
          */
         public Builder apiVersion(String apiVersion) {

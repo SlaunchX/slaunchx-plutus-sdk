@@ -29,7 +29,7 @@ package plutus
 // Protocol 是本 SDK 实现的协议标识。
 const Protocol = "SLAUNCHX-PLUTUS-API-V1"
 
-// DefaultAPIVersion 是当前唯一受支持的契约主版本, 对应 X-API-VERSION 头。
+// DefaultAPIVersion 是兼容保留的版本常量；不会作为配置默认值。
 const DefaultAPIVersion = "1"
 
 // SignatureAlgorithm 是 X-Signature-Algorithm / X-Response-Signature-Algorithm 的字面量值。

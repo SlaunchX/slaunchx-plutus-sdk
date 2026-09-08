@@ -28,6 +28,7 @@ function unsignedFetch(): typeof globalThis.fetch {
 
 function baseConfig(overrides: Partial<PlutusConfig> = {}): PlutusConfig {
   return {
+    apiVersion: '1',
     baseUrl: BASE_URL,
     apiKey: 'apk_vector_0001',
     verifyResponseSignature: false,

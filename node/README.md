@@ -108,6 +108,7 @@ SDK 在装载时强制校验这些约束,不满足会抛 `PlutusKeyError`。
 import { PlutusClient } from '@slaunchx/plutus-sdk';
 
 const client = new PlutusClient({
+  apiVersion: '1',
   baseUrl: 'https://consumer-api.slaunchx.example',
   apiKey: process.env.SLAUNCHX_API_KEY!,
   keys: {
@@ -151,6 +152,7 @@ RSA-OAEP-SHA256 + AES-256-GCM 封装 → 用**信封 JSON 字节**的摘要签�
 
 ```ts
 const client = new PlutusClient({
+  apiVersion: '1',
   baseUrl: 'https://consumer-api.slaunchx.example',
   apiKey: process.env.SLAUNCHX_API_KEY!,
   keys: {
@@ -197,7 +199,7 @@ const { envelope, bodyBytes, keyId } = EnvelopeCodec.sealRequest(
   },
 );
 
-const signer = new RequestSigner({
+const signer = new RequestSigner({ apiVersion: '1',
   apiKey: process.env.SLAUNCHX_API_KEY!,
   merchantAuthPrivateKey: process.env.MERCHANT_AUTH_PRIVATE_PEM!,
 });
@@ -409,7 +411,7 @@ console.log(url, headers);                  // 实际会发往的 URL 与全部�
 ```ts
 import { RequestSigner } from '@slaunchx/plutus-sdk';
 
-const signer = new RequestSigner({
+const signer = new RequestSigner({ apiVersion: '1',
   apiKey: process.env.SLAUNCHX_API_KEY!,
   merchantAuthPrivateKey: process.env.MERCHANT_AUTH_PRIVATE_PEM!,
 });
@@ -530,7 +532,7 @@ try {
 | `keys.platformAuthPublicKey` | 同上 | — | 启用响应验签时必填 |
 | `keys.merchantEncPrivateKey` | 同上 | — | 解密敏感响应 / Webhook 时必填 |
 | `keys.platformEncPublicKey` | 同上 | — | 调用加密端点时必填 |
-| `apiVersion` | `string` | `'1'` | `X-API-VERSION`,参与签名 |
+| `apiVersion` | `string` | 无（必填） | `X-API-VERSION`,参与签名 |
 | `verifyResponseSignature` | `boolean` | `true` | 是否验证响应签名 |
 | `requireSignatureOnErrorResponses` | `boolean` | `false` | 非 2xx 缺签名头时是否也报错(2xx 缺签名头一律报错) |
 | `timeoutMs` | `number` | `30000` | 单次请求超时;`0` 表示不设超时 |
@@ -550,6 +552,7 @@ try {
 ```ts
 // 正确:baseUrl 是对外 CONSUMER API 域名;path 是外部路径,SDK 对 /card-products/xxx 签名
 const client = new PlutusClient({
+  apiVersion: '1',
   baseUrl: 'https://consumer-api.slaunchx.example',
   // ...
 });
@@ -559,6 +562,7 @@ await client.request({ method: 'POST', path: '/card-products/10010106/shared/car
 ```ts
 // 错误:baseUrl 是源站地址,并自行拼接了 /prometheus/api/v1/consumer 前缀 —— 签名必然失败
 const client = new PlutusClient({
+  apiVersion: '1',
   baseUrl: 'https://origin-host.internal/prometheus/api/v1/consumer',
   // ...
 });
@@ -682,3 +686,5 @@ npm run typecheck
 8. Webhook body 摘要用 hex —— Webhook 用 Base64,API 链用小写 hex,SDK 分别提供了函数。
 9. 重试时复用整套签名头 —— 时间戳会过期、nonce 会判重放。重试请重新调用 `request()`,
    业务幂等靠 `X-Idempotency-Key`。
+
+`X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。

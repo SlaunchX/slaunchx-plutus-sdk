@@ -49,6 +49,7 @@ def lenient_config(keys) -> PlutusConfig:
         platform_auth_public_key=keys["platform_auth"]["publicKeyPem"],
         raise_on_http_error=False,
         raise_on_business_error=False,
+        api_version="1",
     )
 
 
@@ -255,6 +256,7 @@ def test_pending_approval_does_not_raise(keys, session: _FakeSession) -> None:
         api_key="apk_vector_0001",
         merchant_auth_private_key=keys["merchant_auth"]["privateKeyPem"],
         platform_auth_public_key=keys["platform_auth"]["publicKeyPem"],
+        api_version="1",
     )
     response = _fetch(
         config,
@@ -275,6 +277,7 @@ def test_http_200_business_failure_raises_by_default(
         api_key="apk_vector_0001",
         merchant_auth_private_key=keys["merchant_auth"]["privateKeyPem"],
         platform_auth_public_key=keys["platform_auth"]["publicKeyPem"],
+        api_version="1",
     )
     with pytest.raises(ApiError) as excinfo:
         _fetch(
