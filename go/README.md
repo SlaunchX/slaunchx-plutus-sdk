@@ -1,5 +1,7 @@
 # SlaunchX Plutus 商户 Go SDK
 
+维护者: SlaunchX Platform Team <developer@slaunchx.com>
+
 ## product 接入
 
 接入 product 时显式选择以下配置；默认仍使用 Alpha 规则，不会在验签失败后自动切换。

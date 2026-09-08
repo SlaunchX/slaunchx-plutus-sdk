@@ -3,6 +3,12 @@
     "description": "SlaunchX Plutus 商户 API PHP SDK (协议 SLAUNCHX-PLUTUS-API-V1, 仅传输层)",
     "type": "library",
     "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "SlaunchX Platform Team",
+            "email": "developer@slaunchx.com"
+        }
+    ],
     "keywords": ["slaunchx", "plutus", "api", "sdk", "rsa", "hybrid-encryption"],
     "require": {
         "php": ">=8.1",

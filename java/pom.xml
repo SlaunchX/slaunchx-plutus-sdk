@@ -19,6 +19,18 @@
     </license>
   </licenses>
 
+  <organization>
+    <name>SlaunchX</name>
+  </organization>
+
+  <developers>
+    <developer>
+      <name>SlaunchX Platform Team</name>
+      <email>developer@slaunchx.com</email>
+      <organization>SlaunchX</organization>
+    </developer>
+  </developers>
+
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "SlaunchX Plutus 商户 API SDK (SLAUNCHX-PLUTUS-API-V1): 请求签名、请求加密、响应验签、敏感响应解密、Webhook 验签与解密",
   "license": "Apache-2.0",
+  "author": {
+    "name": "SlaunchX Platform Team",
+    "email": "developer@slaunchx.com"
+  },
   "private": false,
   "type": "module",
   "engines": {
