@@ -207,9 +207,39 @@ match ($event->eventType) {
 http_response_code(200);
 ```
 
-`handle()` 依次完成:验签(body 摘要用 **Base64**)→ 校验信封形状(有 `envelopeVersion`,
-无 `encryptedPayload`)→ 重建 AAD(第 2 位固定字面量 `webhook`,第 4 位是 **API Key 业务 ID**
+`handle()` 依次完成:验签(body 摘要用 **Base64**)→ 校验接收方 API Key → 校验信封形状(有 `envelopeVersion`,
+无 `encryptedPayload`)→ 重建 AAD(第 2 位固定字面量 `webhook`,第 4 位使用已核对的 **本地 API Key 业务 ID**
 而非指纹)→ 解密 → 与传输头交叉校验。**去重由调用方负责**。
+
+#### 接收方校验修复版本
+
+修复源码版本：`58a2893`（PHP Webhook 接收方校验）；语言包尚未发布，安装源码时需包含该提交。`dc877b1` / `d49cefe` 等未包含此修复的版本需要手动校验。
+
+`handle()` 在验签成功后、解析信封和解密前，以 `hash_equals` 比较
+`X-SlaunchX-Key-Id` 与 `PlutusConfig::$apiKey`。该配置必须来自本地登记的接收方
+API Key 业务 ID，不能根据本次请求头动态设置，也不是公钥指纹。
+不一致时抛出 `WebhookPayloadException('Webhook 接收方 API Key 不匹配')`。
+独立 `decrypt()` 同样检查接收方，但调用方仍须先执行 `verifySignature()`。
+两个 API Key 即使共用同一对加密密钥，也不能互相接收投递。
+
+旧版本在调用 `handle()` 前使用以下兼容检查；若直接调用 `decrypt()`，也必须先完成这些步骤。
+
+```php
+$handler->verifySignature($headers, $rawBody);
+$keyId = null;
+foreach ($headers as $name => $value) {
+    if (strcasecmp($name, WebhookHandler::HEADER_KEY_ID) === 0) {
+        $keyId = $value;
+        break;
+    }
+}
+if (!is_string($keyId) || !hash_equals($config->apiKey, $keyId)) {
+    throw new \SlaunchX\Plutus\Exception\WebhookPayloadException('Webhook 接收方 API Key 不匹配');
+}
+$event = $handler->handle($headers, $rawBody);
+```
+
+此修复只增加接收方约束，不改变 product 的 Webhook 签名规范串、信封格式或 AAD 四段协议。
 
 载荷中的金额形如 `{"currency":"USD","amount":"25.80"}`,`amount` 是十进制字符串,
 不得解析为浮点数。
