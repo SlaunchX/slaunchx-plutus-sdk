@@ -117,7 +117,7 @@ func (s *Signer) Sign(req CanonicalRequest) (*SignedRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	canonicalQuery, err := CanonicalizeQuery(req.RawQuery)
+	canonicalQuery, err := CanonicalizeQueryForProfile(req.RawQuery, req.ProtocolProfile)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +131,13 @@ func (s *Signer) Sign(req CanonicalRequest) (*SignedRequest, error) {
 	}
 	if req.IdempotencyKey != "" {
 		headers[HeaderIdempotencyKey] = req.IdempotencyKey
+	}
+	if req.ProtocolProfile == ProductV1 {
+		id, err := productRequestID(req.RequestID)
+		if err != nil {
+			return nil, err
+		}
+		headers[HeaderRequestID] = id
 	}
 	return &SignedRequest{
 		CanonicalString:    canonical,

@@ -23,7 +23,7 @@ final class SignedRequest
      * @param string|null           $idempotencyKey         `X-Idempotency-Key`; 不发送时为 null
      * @param string                $body                   实际发送的 body 字节 (可能为空串)
      * @param string                $bodyHash               规范串第 8 行的 body 摘要 (小写 hex)
-     * @param string                $canonicalString        8 行请求规范串
+     * @param string                $canonicalString        所选协议的请求规范串 (8 行或 7 行)
      * @param string                $requestCanonicalSha256 规范串自身的 SHA-256 (小写 hex)
      * @param string                $signature              Base64 请求签名
      * @param array<string, string> $headers                待发送的完整请求头
@@ -47,7 +47,7 @@ final class SignedRequest
     }
 
     /**
-     * 规范串按 LF 拆出的 8 行, 便于排障时逐行比对。
+     * 规范串按 LF 拆行, 便于按所选协议逐行比对。
      *
      * @return array<int, string>
      */

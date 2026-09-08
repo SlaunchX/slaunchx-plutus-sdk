@@ -1,3 +1,4 @@
+import { ProtocolProfile, resolveProfile, productRequestId } from './protocol.js';
 /**
  * 请求签名器:构造 8 行规范串、生成 RSA-SHA256(PKCS#1 v1.5)签名与全部签名头。
  */
@@ -96,6 +97,7 @@ export interface SignedRequest {
 
 /** {@link RequestSigner} 构造选项。 */
 export interface RequestSignerOptions {
+  protocolProfile?: ProtocolProfile;
   /** API Key 业务 ID,写入 `X-Api-Key` */
   apiKey: string;
   /** 商户认证私钥(`merchant_auth`,PKCS#8 PEM) */
@@ -123,6 +125,7 @@ export interface RequestSignerOptions {
  * await fetch(url, { method: 'POST', headers: signed.headers, body });
  */
 export class RequestSigner {
+  private readonly protocolProfile: ProtocolProfile;
   private readonly apiKey: string;
   private readonly privateKey: KeyObject;
   private readonly apiVersion: string;
@@ -133,6 +136,7 @@ export class RequestSigner {
     if (!options.apiKey) {
       throw new PlutusRequestError('apiKey is required');
     }
+    this.protocolProfile = resolveProfile(options.protocolProfile);
     this.apiKey = options.apiKey;
     this.privateKey = loadPrivateKey(options.merchantAuthPrivateKey, {
       strict: options.strictKeyValidation !== false,
@@ -156,7 +160,7 @@ export class RequestSigner {
     const rawQuery = typeof request.query === 'string' || request.query == null
       ? request.query ?? ''
       : encodeQueryParams(request.query);
-    const canonicalQuery = canonicalizeQuery(rawQuery);
+    const canonicalQuery = canonicalizeQuery(rawQuery, this.protocolProfile);
     const timestamp = request.timestamp ?? String(this.now());
     if (!/^\d+$/.test(timestamp)) {
       throw new PlutusRequestError('timestamp must be a Unix milliseconds decimal string');
@@ -170,6 +174,7 @@ export class RequestSigner {
     const bodyDigest = signedBodyDigest(method, request.body);
 
     const canonicalString = buildRequestCanonicalString({
+      protocolProfile: this.protocolProfile,
       method,
       externalPath: request.path,
       canonicalQuery,
@@ -192,9 +197,8 @@ export class RequestSigner {
     if (idempotencyKey !== null && idempotencyKey !== '') {
       headers['X-Idempotency-Key'] = idempotencyKey;
     }
-    if (request.requestId) {
-      headers['X-Request-Id'] = request.requestId;
-    }
+    const requestId = this.protocolProfile === ProtocolProfile.PRODUCT_V1 ? productRequestId(request.requestId) : request.requestId;
+    if (requestId) headers['X-Request-Id'] = requestId;
     if (request.platformEncryptionKeyId) {
       headers['X-Platform-Encryption-Key-Id'] = request.platformEncryptionKeyId;
     }

@@ -1,5 +1,18 @@
 # SlaunchX Plutus 商户 Go SDK
 
+## product 接入
+
+接入 product 时显式选择以下配置；默认仍使用 Alpha 规则，不会在验签失败后自动切换。
+
+```go
+// 在 plutus.Config 中增加：
+ProtocolProfile: plutus.ProductV1,
+```
+
+product 请求按 7 行签名、响应按 5 行验签。URL 参数按 product 的排序和编码规则处理。SDK 自动发送并保存请求编号；响应缺少 `X-Request-Id` 时，用本次发送的编号验签。响应已有编号时使用返回值，验签失败仍报错。
+
+这些改动仅在本地验证，尚未发布；下文未特别说明的协议细节和原有黄金向量使用默认 Alpha 规则。
+
 协议 `SLAUNCHX-PLUTUS-API-V1` 的 Go 实现,覆盖请求签名、加密请求、响应验签、敏感响应解密、
 Webhook 验签与解密。仅依赖 Go 标准库,零第三方依赖。
 

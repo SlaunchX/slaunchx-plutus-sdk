@@ -1,3 +1,4 @@
+import { ProtocolProfile, resolveProfile, productCanonicalQuery } from './protocol.js';
 /**
  * 协议原语:query 规范化、body 摘要、请求/响应规范串、AAD 构造。
  *
@@ -154,7 +155,8 @@ function isBlankJavaTrim(value: string): boolean {
  * canonicalizeQuery('flag&a=1');           // 'a=1&flag='
  * canonicalizeQuery('q=a+b');              // 抛错: 裸 '+' 不表示空格
  */
-export function canonicalizeQuery(query: string | null | undefined): string {
+export function canonicalizeQuery(query: string | null | undefined, protocolProfile: ProtocolProfile = ProtocolProfile.REQUEST_BOUND_V1): string {
+  if (resolveProfile(protocolProfile) === ProtocolProfile.PRODUCT_V1) return productCanonicalQuery(query);
   if (query === null || query === undefined || isBlankJavaTrim(query)) {
     return '';
   }
@@ -244,6 +246,7 @@ export function signedBodyDigest(method: string, body: Uint8Array | null | undef
 
 /** 请求规范串的构造入参。 */
 export interface RequestCanonicalInput {
+  protocolProfile?: ProtocolProfile;
   /** HTTP 方法,大写 */
   method: string;
   /** 外部路径,以 `/` 开头,不含 query,不做编码变换 */
@@ -295,7 +298,7 @@ export function buildRequestCanonicalString(input: RequestCanonicalInput): strin
     input.timestamp,
     input.nonce,
     input.apiVersion,
-    input.idempotencyKey ?? '',
+    ...(resolveProfile(input.protocolProfile) === ProtocolProfile.PRODUCT_V1 ? [] : [input.idempotencyKey ?? '']),
     input.bodyDigest,
   ].join('\n');
 }
@@ -312,6 +315,7 @@ export function requestCanonicalSha256(canonicalString: string): string {
 
 /** 响应规范串的构造入参。 */
 export interface ResponseCanonicalInput {
+  protocolProfile?: ProtocolProfile;
   /** 本地计算的请求绑定摘要;严禁从响应头读取 */
   requestCanonicalSha256: string;
   /** 本次请求的 `X-API-VERSION` */
@@ -339,6 +343,9 @@ export interface ResponseCanonicalInput {
  * @returns 以 LF 连接、无尾换行的规范串
  */
 export function buildResponseCanonicalString(input: ResponseCanonicalInput): string {
+  if (resolveProfile(input.protocolProfile) === ProtocolProfile.PRODUCT_V1) {
+    return [input.requestId ?? '', String(input.httpStatus), input.contentType ?? '', input.responseTimestamp ?? '', input.responseBodyDigest].join('\n');
+  }
   return [
     RESPONSE_CANONICAL_PREFIX,
     input.requestCanonicalSha256,

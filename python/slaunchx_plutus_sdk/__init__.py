@@ -18,6 +18,8 @@ Webhook 接收。不建立业务端点模型,业务路径与载荷由调用方�
 
 from __future__ import annotations
 
+from .protocol import ProtocolProfile
+
 from .client import (
     ApiResponse,
     PlutusClient,
@@ -114,6 +116,7 @@ __version__ = "0.1.0"
 PROTOCOL = "SLAUNCHX-PLUTUS-API-V1"
 
 __all__ = [
+    "ProtocolProfile",
     "__version__",
     "PROTOCOL",
     # client

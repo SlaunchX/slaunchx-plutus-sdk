@@ -1,3 +1,4 @@
+import { ProtocolProfile, resolveProfile } from './protocol.js';
 /**
  * 响应验签:重建 10 行 `SLAUNCHX-API-RESPONSE-V1` 规范串并校验 `X-Response-Signature`。
  */
@@ -68,6 +69,8 @@ export function snapshotHeaders(headers: HeaderSource | null | undefined): Recor
 
 /** 响应验签入参。 */
 export interface ResponseVerificationInput {
+  /** ID retained from this outbound request, only used for product missing-header compatibility. */
+  sentRequestId?: string;
   /** 本地计算的请求绑定摘要(来自 {@link SignedRequest.requestCanonicalSha256}) */
   requestCanonicalSha256: string;
   /** 本次请求的 `X-API-VERSION` */
@@ -100,6 +103,7 @@ export interface ResponseVerificationResult {
 
 /** {@link ResponseVerifier} 构造选项。 */
 export interface ResponseVerifierOptions {
+  protocolProfile?: ProtocolProfile;
   /** 平台认证公钥(`platform_auth`) */
   platformAuthPublicKey: KeyInput;
   /**
@@ -120,10 +124,12 @@ export interface ResponseVerifierOptions {
  * 规范串第 2 行的请求绑定摘要必须由本地计算,绝不能从响应头读取 —— 否则等于放弃绑定。
  */
 export class ResponseVerifier {
+  private readonly protocolProfile: ProtocolProfile;
   private readonly publicKey: KeyObject;
   private readonly requireSignatureOnErrorResponses: boolean;
 
   constructor(options: ResponseVerifierOptions) {
+    this.protocolProfile = resolveProfile(options.protocolProfile);
     this.publicKey = loadPublicKey(options.platformAuthPublicKey, {
       strict: options.strictKeyValidation !== false,
       label: 'platform_auth',
@@ -143,7 +149,7 @@ export class ResponseVerifier {
    */
   verify(input: ResponseVerificationInput): ResponseVerificationResult {
     const signature = readHeader(input.headers, 'X-Response-Signature');
-    const requestId = readHeader(input.headers, 'X-Request-Id');
+    let requestId = readHeader(input.headers, 'X-Request-Id');
     const operationId = readHeader(input.headers, 'X-Operation-Id');
     const signingKeyId = readHeader(input.headers, 'X-Platform-Signing-Key-Id');
 
@@ -157,7 +163,12 @@ export class ResponseVerifier {
       return { verified: false, canonicalString: null, signature: null, requestId, operationId, signingKeyId };
     }
 
+    if (requestId === null && this.protocolProfile === ProtocolProfile.PRODUCT_V1) {
+      if (!input.sentRequestId?.trim()) throw new PlutusSignatureError('product response missing X-Request-Id and no sent ID retained');
+      requestId = input.sentRequestId;
+    }
     const canonicalString = buildResponseCanonicalString({
+      protocolProfile: this.protocolProfile,
       requestCanonicalSha256: input.requestCanonicalSha256,
       apiVersion: input.apiVersion,
       externalPath: input.externalPath,

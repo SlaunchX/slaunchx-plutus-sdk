@@ -5,6 +5,8 @@
  * 只实现传输层,不封装业务端点。
  */
 
+export { ProtocolProfile } from './protocol.js';
+
 export {
   EMPTY_BODY_SHA256,
   FORCED_EMPTY_BODY_METHODS,

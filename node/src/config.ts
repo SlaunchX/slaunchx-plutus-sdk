@@ -1,3 +1,4 @@
+import { ProtocolProfile, resolveProfile } from './protocol.js';
 /**
  * 客户端配置与规范化。
  */
@@ -21,6 +22,8 @@ export interface PlutusKeyMaterial {
 
 /** {@link PlutusClient} 配置。 */
 export interface PlutusConfig {
+  /** Explicit protocol; default preserves Alpha. */
+  protocolProfile?: ProtocolProfile;
   /**
    * CONSUMER API 主机根地址,例如 `https://consumer-api.example.com`。不含链/版本/门户前缀。
    *
@@ -88,6 +91,7 @@ export interface PlutusConfig {
 
 /** 规范化后的内部配置。 */
 export interface ResolvedConfig {
+  protocolProfile: ProtocolProfile;
   baseUrl: string;
   apiKey: string;
   apiVersion: string;
@@ -173,6 +177,7 @@ export function resolveConfig(config: PlutusConfig): ResolvedConfig {
   }
 
   return {
+    protocolProfile: resolveProfile(config.protocolProfile),
     baseUrl: normalizeBaseUrl(config.baseUrl),
     apiKey: config.apiKey,
     apiVersion: config.apiVersion ?? DEFAULT_API_VERSION,

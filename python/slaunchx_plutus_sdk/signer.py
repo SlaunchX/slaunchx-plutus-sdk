@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from .config import DEFAULT_API_VERSION
+from .protocol import ProtocolProfile, resolve_profile, product_canonical_query, product_request_id
 from .errors import CanonicalQueryError, ConfigurationError
 
 __all__ = [
@@ -109,7 +110,7 @@ def canonicalize_component(component: str) -> str:
     return _percent_encode(_percent_decode_strict(component))
 
 
-def canonicalize_query(query: Optional[str]) -> str:
+def canonicalize_query(query: Optional[str], protocol_profile=ProtocolProfile.REQUEST_BOUND_V1) -> str:
     """把原始 query 串规范化为签名规范串第 3 行。
 
     算法为「严格解码 → RFC 3986 重编码 → 按 (key, value) 字节序排序 → 重组」。
@@ -118,6 +119,8 @@ def canonicalize_query(query: Optional[str]) -> str:
 
     :raises CanonicalQueryError: 任一分量不满足 RFC 3986 要求。
     """
+    if resolve_profile(protocol_profile) == ProtocolProfile.PRODUCT_V1:
+        return product_canonical_query(query)
     if query is None or query.strip() == "":
         return ""
     pairs = []
@@ -194,6 +197,7 @@ def build_request_canonical_string(
     api_version: str,
     idempotency_key: Optional[str],
     body_hash: str,
+    protocol_profile=ProtocolProfile.REQUEST_BOUND_V1,
 ) -> str:
     """按 8 行结构拼接请求规范串(LF 连接,无尾换行)。
 
@@ -213,7 +217,7 @@ def build_request_canonical_string(
             timestamp,
             nonce,
             api_version,
-            idempotency_key or "",
+            *([] if resolve_profile(protocol_profile) == ProtocolProfile.PRODUCT_V1 else [idempotency_key or ""]),
             body_hash,
         ]
     )
@@ -289,6 +293,7 @@ class RequestSigner:
         private_key: rsa.RSAPrivateKey,
         api_key: str,
         api_version: str = DEFAULT_API_VERSION,
+        protocol_profile=ProtocolProfile.REQUEST_BOUND_V1,
     ) -> None:
         """
         :param private_key: 商户认证私钥 ``merchant_auth``
@@ -298,6 +303,7 @@ class RequestSigner:
         self._private_key = private_key
         self._api_key = api_key
         self._api_version = api_version
+        self._protocol_profile = resolve_profile(protocol_profile)
 
     def sign(
         self,
@@ -326,7 +332,7 @@ class RequestSigner:
         """
         method_upper = method.upper()
         raw_query = encode_query(query)
-        canonical_query = canonicalize_query(raw_query)
+        canonical_query = canonicalize_query(raw_query, self._protocol_profile)
         ts = timestamp or current_timestamp_ms()
         nonce_value = validate_nonce(nonce) if nonce else generate_nonce()
         digest = body_sha256_hex(body, method_upper)
@@ -339,6 +345,7 @@ class RequestSigner:
             self._api_version,
             idempotency_key,
             digest,
+            self._protocol_profile,
         )
         signature = sign_canonical_string(self._private_key, canonical)
         headers: Dict[str, str] = {
@@ -351,6 +358,8 @@ class RequestSigner:
         }
         if idempotency_key:
             headers["X-Idempotency-Key"] = idempotency_key
+        if self._protocol_profile == ProtocolProfile.PRODUCT_V1:
+            request_id = product_request_id(request_id)
         if request_id:
             headers["X-Request-Id"] = request_id
         if platform_encryption_key_id:

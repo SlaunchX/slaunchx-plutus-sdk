@@ -1,5 +1,17 @@
 # SlaunchX Plutus 商户 SDK (monorepo)
 
+PHP、Node、Go、Java、Python 均已在本地增加 product 协议支持：7 行请求签名、5 行响应验签、product URL 参数规则，以及响应漏返回 `X-Request-Id` 的兼容处理。默认保留 Alpha 的 8/10 行规则，不自动切换。
+
+| 语言 | product 配置 | 接入说明 |
+|---|---|---|
+| PHP | `protocolProfile: ProtocolProfile::PRODUCT_V1` | [PHP](php/README.md) |
+| Node | `protocolProfile: ProtocolProfile.PRODUCT_V1` | [Node](node/README.md) |
+| Go | `ProtocolProfile: plutus.ProductV1` | [Go](go/README.md) |
+| Java | `.protocolProfile(ProtocolProfile.PRODUCT_V1)` | [Java](java/README.md) |
+| Python | `protocol_profile=ProtocolProfile.PRODUCT_V1` | [Python](python/README.md) |
+
+修改尚未发布。下文原有黄金向量描述默认 Alpha 协议；`shared/product-query-vectors.json` 用于 product 参数编码测试。
+
 SlaunchX Plutus 平台面向商户的官方 API SDK 集合。Java / PHP / Node.js / Python / Go
 五个实现共用同一份协议规范与同一套黄金测试向量,保证跨语言行为逐字节一致。
 

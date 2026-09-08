@@ -1,5 +1,19 @@
 # SlaunchX Plutus 商户 Python SDK
 
+## product 接入
+
+接入 product 时显式选择以下配置；默认仍使用 Alpha 规则，不会在验签失败后自动切换。
+
+```python
+from slaunchx_plutus_sdk import ProtocolProfile
+# 在 PlutusConfig(...) 中增加：
+protocol_profile=ProtocolProfile.PRODUCT_V1
+```
+
+product 请求按 7 行签名、响应按 5 行验签。URL 参数按 product 的排序和编码规则处理。SDK 自动发送并保存请求编号；响应缺少 `X-Request-Id` 时，用本次发送的编号验签。响应已有编号时使用返回值，验签失败仍报错。
+
+这些改动仅在本地验证，尚未发布；下文未特别说明的协议细节和原有黄金向量使用默认 Alpha 规则。
+
 协议 `SLAUNCHX-PLUTUS-API-V1` 的 Python 实现,只覆盖传输层:请求签名、响应验签、
 混合加密信封、Webhook 验签与解密。**不建立业务端点模型** —— 外部路径与业务载荷由调用方给出,
 因此平台新增端点时无需升级 SDK。

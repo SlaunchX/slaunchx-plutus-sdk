@@ -11,9 +11,11 @@ use SlaunchX\Plutus\Model\SignedRequest;
 use SlaunchX\Plutus\Support\CanonicalQuery;
 use SlaunchX\Plutus\Support\Keys;
 use SlaunchX\Plutus\Support\Nonce;
+use SlaunchX\Plutus\Support\ProductCanonicalQuery;
 
 /**
- * 请求签名: 拼接 8 行规范串并用 `merchant_auth` 私钥做 RSA-SHA256 (PKCS#1 v1.5) 签名。
+ * 请求签名: 根据协议拼接规范串，以 merchant_auth 私钥做 RSA-SHA256 签名。
+ * 默认请求绑定协议为 8 行，PRODUCT_V1 为 7 行。
  */
 final class RequestSigner
 {
@@ -33,9 +35,14 @@ final class RequestSigner
     /**
      * 规范化 query 串, 见 {@see CanonicalQuery::canonicalize()}。
      */
-    public static function canonicalizeQuery(?string $rawQuery): string
+    public static function canonicalizeQuery(
+        ?string $rawQuery,
+        ProtocolProfile $protocolProfile = ProtocolProfile::REQUEST_BOUND_V1,
+    ): string
     {
-        return CanonicalQuery::canonicalize($rawQuery);
+        return $protocolProfile === ProtocolProfile::PRODUCT_V1
+            ? ProductCanonicalQuery::canonicalize($rawQuery)
+            : CanonicalQuery::canonicalize($rawQuery);
     }
 
     /**
@@ -64,7 +71,7 @@ final class RequestSigner
     }
 
     /**
-     * 拼接 8 行请求规范串 (LF 连接, 无尾换行)。
+     * 拼接请求规范串 (LF 连接, 无尾换行)。默认 8 行，PRODUCT_V1 不含幂等行。
      *
      * @param string      $canonicalQuery 已规范化的 query, 无 query 时传空串
      * @param string|null $idempotencyKey 不发送 `X-Idempotency-Key` 时传 null
@@ -78,7 +85,14 @@ final class RequestSigner
         string $apiVersion,
         ?string $idempotencyKey,
         string $bodyHash,
+        ProtocolProfile $protocolProfile = ProtocolProfile::REQUEST_BOUND_V1,
     ): string {
+        if ($protocolProfile === ProtocolProfile::PRODUCT_V1) {
+            return implode("\n", [
+                strtoupper($method), $externalPath, $canonicalQuery,
+                $timestamp, $nonce, $apiVersion, $bodyHash,
+            ]);
+        }
         return implode("\n", [
             strtoupper($method),
             $externalPath,
@@ -173,7 +187,7 @@ final class RequestSigner
             throw new ConfigurationException('nonce 不满足平台约束 ^[A-Za-z0-9._~-]{16,128}$');
         }
 
-        $canonicalQuery = self::canonicalizeQuery($rawQuery);
+        $canonicalQuery = self::canonicalizeQuery($rawQuery, $this->config->protocolProfile);
         $bodyBytes = $body ?? '';
         $bodyHash = self::bodyDigestHex($method, $bodyBytes);
 
@@ -186,6 +200,7 @@ final class RequestSigner
             $this->config->apiVersion,
             $idempotencyKey,
             $bodyHash,
+            $this->config->protocolProfile,
         );
 
         $signature = self::signCanonicalString($canonicalString, $this->config->merchantAuthPrivateKey());
@@ -206,6 +221,27 @@ final class RequestSigner
         }
         foreach ($extraHeaders as $name => $value) {
             $headers[$name] = $value;
+        }
+        if ($this->config->protocolProfile === ProtocolProfile::PRODUCT_V1) {
+            // product may omit the response ID header, so retain an unambiguous ID we sent.
+            $idHeaders = [];
+            foreach ($headers as $name => $value) {
+                if (strcasecmp($name, 'X-Request-Id') === 0) {
+                    $idHeaders[$name] = $value;
+                }
+            }
+            if (count($idHeaders) > 1) {
+                throw new ConfigurationException('X-Request-Id 不得通过不同大小写重复设置');
+            }
+            $sentId = $idHeaders === [] ? '' : (string) reset($idHeaders);
+            if (str_contains($sentId, "\r") || str_contains($sentId, "\n")) {
+                throw new ConfigurationException('X-Request-Id 不得包含换行');
+            }
+            foreach (array_keys($idHeaders) as $name) {
+                unset($headers[$name]);
+            }
+            $sentId = trim($sentId);
+            $headers['X-Request-Id'] = $sentId !== '' ? $sentId : 'req_' . bin2hex(random_bytes(16));
         }
 
         return new SignedRequest(

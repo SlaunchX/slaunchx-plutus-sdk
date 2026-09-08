@@ -1,5 +1,19 @@
 # SlaunchX Plutus 商户 Java SDK
 
+## product 接入
+
+接入 product 时显式选择以下配置；默认仍使用 Alpha 规则，不会在验签失败后自动切换。
+
+```java
+import com.slaunchx.plutus.sdk.ProtocolProfile;
+// 在 PlutusConfig.builder() 中增加：
+.protocolProfile(ProtocolProfile.PRODUCT_V1)
+```
+
+product 请求按 7 行签名、响应按 5 行验签。URL 参数按 product 的排序和编码规则处理。SDK 自动发送并保存请求编号；响应缺少 `X-Request-Id` 时，用本次发送的编号验签。响应已有编号时使用返回值，验签失败仍报错。
+
+这些改动仅在本地验证，尚未发布；下文未特别说明的协议细节和原有黄金向量使用默认 Alpha 规则。
+
 SlaunchX Plutus 平台 CONSUMER 门户 / API 链的官方 Java SDK,只覆盖**传输层**:请求签名、
 请求加密、响应验签、敏感响应解密、Webhook 验签与解密。SDK 不建立业务端点模型,业务字段由
 调用方按端点自行映射。

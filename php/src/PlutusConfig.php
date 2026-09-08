@@ -61,6 +61,8 @@ final class PlutusConfig
      *                                                   是否直接拒绝, 默认 `false` (仅记录一条 `error_log`
      *                                                   提示, 不阻断请求)。设计取舍见
      *                                                   {@see \SlaunchX\Plutus\EncryptedRoutes} 类注释。
+     * @param ProtocolProfile $protocolProfile          明确选择协议；product 后端使用 PRODUCT_V1。
+     *                                                   不自动探测或降级，默认保持原有请求绑定协议。
      */
     public function __construct(
         public readonly string $baseUrl,
@@ -84,6 +86,7 @@ final class PlutusConfig
         public readonly ?Closure $clock = null,
         public readonly array $curlOptions = [],
         public readonly bool $strictEncryptedRouteValidation = false,
+        public readonly ProtocolProfile $protocolProfile = ProtocolProfile::REQUEST_BOUND_V1,
     ) {
         if ($apiKey === '') {
             throw new ConfigurationException('apiKey 不能为空');

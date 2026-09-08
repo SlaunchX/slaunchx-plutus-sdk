@@ -22,6 +22,7 @@ const DefaultMaxResponseBytes = 8 << 20
 
 // Config 是 Client 的配置。密钥均可用 PEM 字节或已解析对象提供。
 type Config struct {
+	ProtocolProfile ProtocolProfile
 	// BaseURL 是商户 API 的基地址, 如 https://consumer-api.example.com。
 	// 必须是对外 CONSUMER API 域名 (边缘/网关地址), 不能是源站地址, 也不能自行拼接
 	// /prometheus、/api/v1/consumer 等内部前缀: 外部路径统一由 Request.Path 给出,
@@ -82,6 +83,7 @@ type Config struct {
 
 // Client 是商户 API 的通用 HTTP 客户端, 完成签名、发送、验签与错误解析。可并发使用。
 type Client struct {
+	protocolProfile        ProtocolProfile
 	baseURL                *url.URL
 	apiKey                 string
 	apiVersion             string
@@ -102,6 +104,9 @@ type Client struct {
 
 // New 校验配置并构造 Client。
 func New(cfg Config) (*Client, error) {
+	if err := cfg.ProtocolProfile.validate(); err != nil {
+		return nil, err
+	}
 	if strings.TrimSpace(cfg.BaseURL) == "" {
 		return nil, fmt.Errorf("%w: base url is required", ErrInvalidConfig)
 	}
@@ -123,6 +128,7 @@ func New(cfg Config) (*Client, error) {
 		}
 	}
 	c := &Client{
+		protocolProfile:       cfg.ProtocolProfile,
 		baseURL:               base,
 		apiKey:                cfg.APIKey,
 		apiVersion:            cfg.APIVersion,
@@ -275,6 +281,24 @@ func (c *Client) Prepare(ctx context.Context, req Request) (*PreparedRequest, er
 	}
 
 	requestID := req.RequestID
+	if c.protocolProfile == ProductV1 {
+		ids := []string{}
+		for name, values := range req.Header {
+			if strings.EqualFold(name, HeaderRequestID) {
+				ids = append(ids, values...)
+			}
+		}
+		if len(ids) > 1 || len(ids) > 0 && requestID != "" {
+			return nil, fmt.Errorf("%w: duplicate X-Request-Id", ErrInvalidConfig)
+		}
+		if len(ids) == 1 {
+			requestID = ids[0]
+		}
+		requestID, err = productRequestID(requestID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	var envelope *Envelope
 	if req.Encrypt {
 		if c.platformEncPub == nil {
@@ -303,14 +327,16 @@ func (c *Client) Prepare(ctx context.Context, req Request) (*PreparedRequest, er
 	}
 
 	signed, err := c.signer.Sign(CanonicalRequest{
-		Method:         method,
-		ExternalPath:   req.Path,
-		RawQuery:       rawQuery,
-		Timestamp:      timestamp,
-		Nonce:          nonce,
-		APIVersion:     c.apiVersion,
-		IdempotencyKey: req.IdempotencyKey,
-		Body:           body,
+		ProtocolProfile: c.protocolProfile,
+		RequestID:       requestID,
+		Method:          method,
+		ExternalPath:    req.Path,
+		RawQuery:        rawQuery,
+		Timestamp:       timestamp,
+		Nonce:           nonce,
+		APIVersion:      c.apiVersion,
+		IdempotencyKey:  req.IdempotencyKey,
+		Body:            body,
 	})
 	if err != nil {
 		return nil, err
@@ -334,6 +360,9 @@ func (c *Client) Prepare(ctx context.Context, req Request) (*PreparedRequest, er
 		httpReq.ContentLength = int64(len(body))
 	}
 	for name, values := range req.Header {
+		if c.protocolProfile == ProductV1 && strings.EqualFold(name, HeaderRequestID) {
+			continue
+		}
 		for _, value := range values {
 			httpReq.Header.Add(name, value)
 		}
@@ -370,6 +399,8 @@ func (c *Client) Prepare(ctx context.Context, req Request) (*PreparedRequest, er
 		Envelope:    envelope,
 		RequestID:   requestID,
 		Binding: ResponseBinding{
+			ProtocolProfile:        c.protocolProfile,
+			SentRequestID:          requestID,
 			RequestCanonicalSHA256: signed.CanonicalDigestHex,
 			APIVersion:             c.apiVersion,
 			ExternalPath:           req.Path,

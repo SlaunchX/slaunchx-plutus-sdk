@@ -5,6 +5,8 @@ import com.slaunchx.plutus.sdk.crypto.RsaSignatures;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.util.List;
+import java.util.Objects;
+import com.slaunchx.plutus.sdk.ProtocolProfile;
 
 /**
  * 请求签名器(SPEC 4 节)。
@@ -26,12 +28,18 @@ import java.util.List;
  */
 public final class RequestSigner {
 
+    private final ProtocolProfile protocolProfile;
     private final RSAPrivateKey merchantAuthPrivateKey;
 
     /**
      * @param merchantAuthPrivateKey 商户认证私钥({@code merchant_auth})
      */
     public RequestSigner(RSAPrivateKey merchantAuthPrivateKey) {
+        this(merchantAuthPrivateKey, ProtocolProfile.REQUEST_BOUND_V1);
+    }
+
+    public RequestSigner(RSAPrivateKey merchantAuthPrivateKey, ProtocolProfile protocolProfile) {
+        this.protocolProfile = Objects.requireNonNull(protocolProfile);
         this.merchantAuthPrivateKey = merchantAuthPrivateKey;
     }
 
@@ -43,7 +51,11 @@ public final class RequestSigner {
      * @return 规范串
      */
     public static String canonicalString(SigningInput input, String bodySha256Hex) {
-        return String.join("\n", canonicalStringLines(input, bodySha256Hex));
+        return canonicalString(input, bodySha256Hex, ProtocolProfile.REQUEST_BOUND_V1);
+    }
+
+    public static String canonicalString(SigningInput input, String bodySha256Hex, ProtocolProfile profile) {
+        return String.join("\n", canonicalStringLines(input, bodySha256Hex, profile));
     }
 
     /**
@@ -54,6 +66,15 @@ public final class RequestSigner {
      * @return 8 个元素的列表
      */
     public static List<String> canonicalStringLines(SigningInput input, String bodySha256Hex) {
+        return canonicalStringLines(input, bodySha256Hex, ProtocolProfile.REQUEST_BOUND_V1);
+    }
+
+    public static List<String> canonicalStringLines(SigningInput input, String bodySha256Hex, ProtocolProfile profile) {
+        Objects.requireNonNull(profile);
+        if (profile == ProtocolProfile.PRODUCT_V1) {
+            return List.of(input.method(), input.externalPath(), ProductCanonicalQuery.canonicalize(input.rawQuery()),
+                    input.timestamp(), input.nonce(), input.apiVersion(), bodySha256Hex);
+        }
         return List.of(
                 input.method(),
                 input.externalPath(),
@@ -73,16 +94,9 @@ public final class RequestSigner {
      */
     public SignedRequest sign(SigningInput input) {
         String bodyHash = Digests.bodySha256Hex(input.method(), input.body());
-        String canonicalQuery = CanonicalQuery.canonicalize(input.rawQuery());
-        String canonical = String.join("\n",
-                input.method(),
-                input.externalPath(),
-                canonicalQuery,
-                input.timestamp(),
-                input.nonce(),
-                input.apiVersion(),
-                input.idempotencyKey() == null ? "" : input.idempotencyKey(),
-                bodyHash);
+        String canonicalQuery = protocolProfile == ProtocolProfile.PRODUCT_V1
+                ? ProductCanonicalQuery.canonicalize(input.rawQuery()) : CanonicalQuery.canonicalize(input.rawQuery());
+        String canonical = canonicalString(input, bodyHash, protocolProfile);
         return new SignedRequest(canonicalQuery,
                 bodyHash,
                 canonical,

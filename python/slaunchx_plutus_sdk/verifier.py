@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from .errors import ResponseSignatureError
 from .signer import EMPTY_BODY_SHA256
+from .protocol import ProtocolProfile, resolve_profile
 
 __all__ = [
     "RESPONSE_CANONICAL_PREFIX",
@@ -50,12 +51,15 @@ def build_response_canonical_string(
     content_type: Optional[str],
     response_timestamp: Optional[str],
     response_body_hash: str,
+    protocol_profile=ProtocolProfile.REQUEST_BOUND_V1,
 ) -> str:
     """按 10 行结构拼接响应规范串(LF 连接,无尾换行)。
 
     ``request_canonical_sha256`` 必须由 SDK 本地计算,绝不能从响应头读取;
     ``content_type`` 必须使用响应头原值,不做归一化。
     """
+    if resolve_profile(protocol_profile) == ProtocolProfile.PRODUCT_V1:
+        return "\n".join([request_id or "", str(http_status), content_type or "", response_timestamp or "", response_body_hash])
     return "\n".join(
         [
             RESPONSE_CANONICAL_PREFIX,
@@ -92,9 +96,10 @@ def verify_signature(
 class ResponseVerifier:
     """响应验签器。验签失败按安全事故处理:丢弃响应体。"""
 
-    def __init__(self, public_key: rsa.RSAPublicKey) -> None:
+    def __init__(self, public_key: rsa.RSAPublicKey, protocol_profile=ProtocolProfile.REQUEST_BOUND_V1) -> None:
         """:param public_key: 平台认证公钥 ``platform_auth``"""
         self._public_key = public_key
+        self._protocol_profile = resolve_profile(protocol_profile)
 
     def verify(
         self,
@@ -106,6 +111,7 @@ class ResponseVerifier:
         headers: Mapping[str, str],
         body: Optional[bytes],
         require_signature_on_error: bool = False,
+        sent_request_id: Optional[str] = None,
     ) -> bool:
         """验证一次响应的签名。
 
@@ -136,16 +142,22 @@ class ResponseVerifier:
                     "HTTP %d 错误响应缺少 X-Response-Signature" % http_status
                 )
             return False
+        request_id = _header(headers, "X-Request-Id")
+        if request_id is None and self._protocol_profile == ProtocolProfile.PRODUCT_V1:
+            if not sent_request_id or not sent_request_id.strip():
+                raise ResponseSignatureError("product response missing X-Request-Id and no sent ID retained")
+            request_id = sent_request_id
         canonical = build_response_canonical_string(
             request_canonical_sha256,
             api_version,
             external_path,
             _header(headers, "X-Operation-Id"),
-            _header(headers, "X-Request-Id"),
+            request_id,
             http_status,
             _header(headers, "Content-Type"),
             _header(headers, "X-Response-Timestamp"),
             response_body_sha256_hex(body),
+            self._protocol_profile,
         )
         if not verify_signature(self._public_key, canonical, signature):
             raise ResponseSignatureError(

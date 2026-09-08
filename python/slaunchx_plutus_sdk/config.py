@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from .errors import ConfigurationError
+from .protocol import ProtocolProfile, resolve_profile
 
 __all__ = [
     "PrivateKeySource",
@@ -166,7 +167,10 @@ class PlutusConfig:
     #: ``User-Agent`` 前缀
     user_agent: str = "slaunchx-plutus-sdk-python"
 
+    protocol_profile: ProtocolProfile = ProtocolProfile.REQUEST_BOUND_V1
+
     def __post_init__(self) -> None:
+        self.protocol_profile = resolve_profile(self.protocol_profile)
         if not self.base_url:
             raise ConfigurationError("base_url 不能为空")
         self.base_url = self.base_url.rstrip("/")
