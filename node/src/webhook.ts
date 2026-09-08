@@ -4,7 +4,7 @@
  * 顺序不可颠倒:签名覆盖的是**加密信封 JSON 的原始字节**,必须先验签、后解密。
  */
 
-import type { KeyObject } from 'node:crypto';
+import { timingSafeEqual, type KeyObject } from 'node:crypto';
 import { buildWebhookCanonicalString, webhookBodyDigestBase64 } from './canonical.js';
 import { EnvelopeCodec, ENVELOPE_ALGORITHM, type WebhookEnvelope } from './envelope.js';
 import { PlutusWebhookError } from './errors.js';
@@ -62,10 +62,10 @@ export interface WebhookHandlerOptions {
   /** 商户加密私钥(`merchant_enc`),用于解密 */
   merchantEncPrivateKey: KeyInput;
   /**
-   * 本商户的 API Key 业务 ID。传入则强制校验 `X-SlaunchX-Key-Id` 与之相等,
+   * 本商户的 API Key 业务 ID，必填。强制校验 `X-SlaunchX-Key-Id` 与之相等,
    * 并用于构造 AAD 的第四分量。
    */
-  apiKeyBizId?: string;
+  apiKeyBizId: string;
   /**
    * 允许的时间戳偏差(毫秒)。SPEC 第 16 节明确该窗口未在契约中规定,
    * 因此**默认关闭**(`undefined`)。启用后既拒绝过旧也拒绝过新的投递。
@@ -157,13 +157,16 @@ export class WebhookHandler {
   private readonly publicKey: KeyObject;
   private readonly privateKey: KeyObject;
   private readonly merchantEncFingerprint: string;
-  private readonly apiKeyBizId: string | undefined;
+  private readonly apiKeyBizId: string;
   private readonly timestampToleranceMs: number | undefined;
   private readonly now: () => number;
   private readonly crossCheckPayload: boolean;
   private readonly maxPlaintextBytes: number | undefined;
 
   constructor(options: WebhookHandlerOptions) {
+    if (typeof options.apiKeyBizId !== 'string' || !options.apiKeyBizId.trim()) {
+      throw new PlutusWebhookError('apiKeyBizId is required');
+    }
     const strict = options.strictKeyValidation !== false;
     this.publicKey = loadPublicKey(options.platformAuthPublicKey, { strict, label: 'platform_auth' });
     this.privateKey = loadPrivateKey(options.merchantEncPrivateKey, { strict, label: 'merchant_enc' });
@@ -190,9 +193,6 @@ export class WebhookHandler {
    */
   verify(rawBody: Uint8Array, headers: HeaderSource): WebhookHeaders {
     const parsed = extractWebhookHeaders(headers);
-    if (this.apiKeyBizId !== undefined && parsed.keyId !== this.apiKeyBizId) {
-      throw new PlutusWebhookError('X-SlaunchX-Key-Id does not match the configured API key business id');
-    }
     if (this.timestampToleranceMs !== undefined) {
       if (!/^\d+$/.test(parsed.timestamp)) {
         throw new PlutusWebhookError('X-SlaunchX-Timestamp must be a Unix milliseconds decimal string');
@@ -213,6 +213,11 @@ export class WebhookHandler {
     );
     if (!verifyCanonicalSignature(canonical, parsed.signature, this.publicKey)) {
       throw new PlutusWebhookError('webhook signature verification failed', 'SDK.WEBHOOK_SIGNATURE_INVALID');
+    }
+    const expected = Buffer.from(this.apiKeyBizId, 'utf8');
+    const received = Buffer.from(parsed.keyId, 'utf8');
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+      throw new PlutusWebhookError('X-SlaunchX-Key-Id does not match the configured API key business id');
     }
     return parsed;
   }
@@ -248,7 +253,7 @@ export class WebhookHandler {
         requestId: parsedHeaders.deliveryBizId,
         routeTemplate: WEBHOOK_ROUTE_TEMPLATE,
         timestamp: parsedHeaders.timestamp,
-        keyId: parsedHeaders.keyId,
+        keyId: this.apiKeyBizId,
       },
       expectedKeyFingerprint: this.merchantEncFingerprint,
       maxPlaintextBytes: this.maxPlaintextBytes,

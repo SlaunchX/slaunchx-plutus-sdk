@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -151,7 +153,7 @@ func ParseWebhookEnvelope(body []byte) (*Envelope, error) {
 // WebhookConfig 是 WebhookReceiver 的配置。密钥可用 PEM 或已解析对象提供, 两者取其一。
 type WebhookConfig struct {
 	// APIKey 是本商户的 API Key 业务 ID, 即 AAD 第 4 分量的期望值。
-	// 非空时会与 X-SlaunchX-Key-Id 比对, 不一致直接拒绝。
+	// 必填；验签后与 X-SlaunchX-Key-Id 比对, 不一致直接拒绝。
 	APIKey string
 	// PlatformAuthPublicKeyPEM 是平台认证公钥, 用于验签。
 	PlatformAuthPublicKeyPEM []byte
@@ -180,6 +182,9 @@ type WebhookReceiver struct {
 
 // NewWebhookReceiver 构造 Webhook 接收器。
 func NewWebhookReceiver(cfg WebhookConfig) (*WebhookReceiver, error) {
+	if strings.TrimSpace(cfg.APIKey) == "" {
+		return nil, fmt.Errorf("%w: webhook APIKey is required", ErrInvalidConfig)
+	}
 	verifyKey := cfg.PlatformAuthPublicKey
 	if verifyKey == nil {
 		if len(cfg.PlatformAuthPublicKeyPEM) == 0 {
@@ -237,14 +242,14 @@ func (r *WebhookReceiver) Verify(headers WebhookHeaders, body []byte) error {
 //
 // 调用方仍需按 Payload.DeliveryBizID 做去重, 自动重试与人工重放共用同一个投递 ID。
 func (r *WebhookReceiver) Handle(headers WebhookHeaders, body []byte) (*WebhookNotification, error) {
-	if r.apiKey != "" && headers.KeyID != r.apiKey {
-		return nil, fmt.Errorf("%w: %s is %q, expected %q", ErrWebhookPayloadMismatch, HeaderWebhookKeyID, headers.KeyID, r.apiKey)
-	}
 	if err := r.checkTimestamp(headers.Timestamp); err != nil {
 		return nil, err
 	}
 	if err := r.Verify(headers, body); err != nil {
 		return nil, err
+	}
+	if subtle.ConstantTimeCompare([]byte(r.apiKey), []byte(headers.KeyID)) != 1 {
+		return nil, fmt.Errorf("%w: webhook recipient API Key mismatch", ErrWebhookPayloadMismatch)
 	}
 	env, err := ParseWebhookEnvelope(body)
 	if err != nil {
@@ -253,7 +258,8 @@ func (r *WebhookReceiver) Handle(headers WebhookHeaders, body []byte) (*WebhookN
 	if err := env.VerifyFingerprint(r.fingerprint); err != nil {
 		return nil, err
 	}
-	plaintext, err := Open(r.decryptKey, env, headers.AAD())
+	aad := AAD{RequestID: headers.DeliveryID, RouteTemplate: WebhookRouteTemplate, Timestamp: headers.Timestamp, KeyID: r.apiKey}
+	plaintext, err := Open(r.decryptKey, env, aad)
 	if err != nil {
 		return nil, err
 	}

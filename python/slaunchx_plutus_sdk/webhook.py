@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import json
 import time
 from dataclasses import dataclass
@@ -113,17 +114,19 @@ class WebhookReceiver:
         platform_auth_public_key: rsa.RSAPublicKey,
         merchant_enc_private_key: Optional[rsa.RSAPrivateKey] = None,
         *,
-        api_key: Optional[str] = None,
+        api_key: str,
         timestamp_tolerance_ms: Optional[int] = None,
         max_plaintext_bytes: int = MAX_PLAINTEXT_BYTES,
     ) -> None:
         """
         :param platform_auth_public_key: 平台认证公钥,验证 ``X-SlaunchX-Signature``
         :param merchant_enc_private_key: 商户加密私钥,解密信封
-        :param api_key: 本商户 API Key 业务 ID;提供后校验 ``X-SlaunchX-Key-Id`` 与之相等
+        :param api_key: 本商户 API Key 业务 ID，必填；验签后校验 ``X-SlaunchX-Key-Id`` 与之相等
         :param timestamp_tolerance_ms: 时间戳容差(毫秒)。协议未规定该窗口,默认 ``None`` 表示关闭
         :param max_plaintext_bytes: 解密明文上限
         """
+        if not isinstance(api_key, str) or not api_key.strip():
+            raise ConfigurationError("Webhook api_key 必填")
         self._public_key = platform_auth_public_key
         self._private_key = merchant_enc_private_key
         self._api_key = api_key
@@ -143,10 +146,6 @@ class WebhookReceiver:
         timestamp = _require_header(headers, HEADER_TIMESTAMP)
         signature = _require_header(headers, HEADER_SIGNATURE)
         key_id = _header(headers, HEADER_KEY_ID) or ""
-        if self._api_key is not None and key_id != self._api_key:
-            raise WebhookSignatureError(
-                "X-SlaunchX-Key-Id 与本商户 API Key 不一致: %r" % key_id
-            )
         if self._tolerance_ms is not None:
             try:
                 delta = abs(int(time.time() * 1000) - int(timestamp))
@@ -161,6 +160,8 @@ class WebhookReceiver:
         canonical = build_webhook_canonical_string(delivery_id, event_type, timestamp, digest)
         if not verify_signature(self._public_key, canonical, signature):
             raise WebhookSignatureError("Webhook 验签失败,请求已丢弃")
+        if not hmac.compare_digest(self._api_key.encode("utf-8"), key_id.encode("utf-8")):
+            raise WebhookSignatureError("Webhook 接收方 API Key 不匹配")
         return {
             "deliveryId": delivery_id,
             "eventType": event_type,
@@ -175,6 +176,9 @@ class WebhookReceiver:
         :param parts: :meth:`verify` 的返回值
         :raises WebhookEnvelopeError: 信封形状非法、AAD 不匹配或 GCM 认证失败
         """
+        key_id = parts.get("keyId")
+        if not isinstance(key_id, str) or not hmac.compare_digest(self._api_key.encode("utf-8"), key_id.encode("utf-8")):
+            raise WebhookEnvelopeError("Webhook 接收方 API Key 不匹配")
         if self._private_key is None:
             raise ConfigurationError("未配置 merchant_enc_private_key,无法解密 Webhook")
         try:
@@ -185,7 +189,7 @@ class WebhookReceiver:
             parts["deliveryId"],
             WEBHOOK_ROUTE_TEMPLATE,
             parts["timestamp"],
-            parts["keyId"],
+            self._api_key,
         )
         try:
             return decrypt_envelope(
