@@ -511,3 +511,16 @@ cd python
 ```
 
 `X-API-VERSION` 必须由调用方通过版本配置显式填写，没有默认值；当前 product 填 `1`。遗漏、空串或纯空白会在本地报错。
+
+
+## Webhook 接收方校验修复版本
+
+修复源码版本：`f16cdbf`；语言包尚未发布，安装源码需包含此提交。PHP 对应修复为 `58a2893`。
+
+`WebhookReceiver(..., api_key=...)` 现在必填，不允许遗漏、空串或纯空白。必须配置本地登记的 API Key 业务 ID，不能从当前投递头动态赋值，也不是公钥指纹。
+
+处理器先验证签名，再将 `X-SlaunchX-Key-Id` 与本地 API Key 比较；不一致即拒绝。AAD 第四段使用已核对的本地 API Key，两个 API Key 即使共用同一对加密密钥也不能互收投递。product 的 Webhook 签名规范串、信封和 AAD 四段协议没有改变。
+
+旧版本的接收方配置可选，调用方必须显式设置上述配置才能启用比较；无法升级时应确保验签后、解密前比较接收方，不得只凭解密成功认定投递属于本地 API Key。
+
+独立 `decrypt(body, parts)` 也强制比较 `parts["keyId"]` 与本地 API Key，但仍需先调用 `verify()`。旧版独立 `decrypt()` 会绕过接收方比较，需在调用前手动校验；建议使用已配置本地 API Key 的 `handle()`。
